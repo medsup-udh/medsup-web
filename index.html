@@ -5,21 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ระบบเอกสารงานวัสดุการแพทย์</title>
   <style>
-    :root { --bg:#f5f6f8; --card:#fff; --text:#1f2933; --muted:#616e7c; --line:#e4e7eb; --brand:#1b6ec2; --ok:#0a7a3e; --bad:#c0392b; --code:#eef1f5; }
+    :root { --bg:#f5f6f8; --card:#fff; --text:#1f2933; --muted:#616e7c; --line:#e4e7eb; --brand:#1b6ec2; --ok:#0a7a3e; --bad:#c0392b; --code:#eef1f5; --chip:#e3eefb; }
     :root:not([data-theme="light"]) { color-scheme: light dark; }
-    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#12161b; --card:#1b2129; --text:#e6e9ee; --muted:#9aa5b1; --line:#2b333d; --brand:#5aa2ee; --ok:#4cc38a; --bad:#ff7b6b; --code:#252d37; } }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#12161b; --card:#1b2129; --text:#e6e9ee; --muted:#9aa5b1; --line:#2b333d; --brand:#5aa2ee; --ok:#4cc38a; --bad:#ff7b6b; --code:#252d37; --chip:#22344a; } }
     * { box-sizing: border-box; }
     body { margin:0; padding:16px; background:var(--bg); color:var(--text); font-family:'Sarabun','Tahoma',sans-serif; line-height:1.55; }
-    main { max-width:720px; margin:0 auto; }
+    main { max-width:860px; margin:0 auto; }
     .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:12px; }
     h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:0 0 8px; }
     .muted { color:var(--muted); font-size:14px; }
-    button { font:inherit; padding:8px 16px; border:0; border-radius:6px; background:var(--brand); color:#fff; cursor:pointer; }
+    button { font:inherit; padding:6px 14px; border:0; border-radius:6px; background:var(--brand); color:#fff; cursor:pointer; }
+    button.secondary { background:transparent; color:var(--brand); border:1px solid var(--brand); }
     button:disabled { opacity:.55; cursor:progress; }
-    input[type=number] { font:inherit; width:90px; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--text); }
-    pre { background:var(--code); padding:10px; border-radius:6px; white-space:pre-wrap; word-break:break-all; font-size:13px; margin:8px 0 0; }
+    input[type=text], input[type=email], input[type=number], select { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--text); max-width:100%; }
+    label { display:block; margin:6px 0 2px; font-size:14px; }
+    .row { display:flex; flex-wrap:wrap; gap:12px; } .row > div { flex:1 1 200px; } .row input[type=text], .row input[type=email] { width:100%; }
+    .chip { display:inline-block; background:var(--chip); border-radius:12px; padding:1px 8px; margin:1px 2px; font-size:13px; }
     .pass { color:var(--ok); font-weight:700; } .fail { color:var(--bad); font-weight:700; }
+    .scroll { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-size:14px; }
+    th, td { border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+    tr.off td { opacity:.55; }
+    pre { background:var(--code); padding:10px; border-radius:6px; white-space:pre-wrap; word-break:break-all; font-size:13px; margin:8px 0 0; }
     footer { text-align:center; margin-top:16px; } a { color:var(--brand); }
+    .hidden { display:none; }
   </style>
 </head>
 <body>
@@ -30,15 +38,38 @@
   </div>
 
   <div class="card">
-    <h2>ขั้นที่ 1: เข้าสู่ระบบด้วยบัญชี Google</h2>
+    <h2>เข้าสู่ระบบด้วยบัญชี Google</h2>
     <div id="login-area" class="muted">กำลังโหลดปุ่มเข้าสู่ระบบ...</div>
     <p id="login-result" role="status"></p>
   </div>
 
-  <div class="card">
-    <h2>ขั้นที่ 2: ทดสอบบันทึกพร้อมกัน</h2>
+  <div class="card hidden" id="profile-card">
+    <h2>บัญชีของฉัน</h2>
+    <div id="profile"></div>
+    <p><button class="secondary" id="logout">ออกจากระบบ</button></p>
+  </div>
+
+  <div class="card hidden" id="admin-card">
+    <h2>จัดการผู้ใช้ (ผู้ดูแลระบบ)</h2>
+    <div class="muted">เพิ่มผู้ใช้ด้วยอีเมล Google ของเขา แล้วกำหนดบทบาท ผู้ที่ไม่อยู่ในรายชื่อจะเข้าสู่ระบบไม่ได้</div>
+    <form id="add-form" autocomplete="off">
+      <div class="row">
+        <div><label for="f-email">อีเมล Google *</label><input type="email" id="f-email" placeholder="name@gmail.com"><div class="fail" id="e-email"></div></div>
+        <div><label for="f-name">ชื่อ-สกุล *</label><input type="text" id="f-name"><div class="fail" id="e-full_name"></div></div>
+        <div><label for="f-pos">ตำแหน่ง</label><input type="text" id="f-pos"><div class="fail" id="e-position"></div></div>
+      </div>
+      <label>บทบาท (ไม่เลือก = USER)</label>
+      <div id="f-roles"></div>
+      <p><button type="submit" id="add-btn">เพิ่มผู้ใช้</button> <span id="add-msg" role="status"></span></p>
+    </form>
+    <div class="scroll"><table><thead><tr><th>อีเมล / ชื่อ</th><th>บทบาท</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="user-rows"></tbody></table></div>
+    <p id="admin-msg" role="status"></p>
+  </div>
+
+  <div class="card hidden" id="load-card">
+    <h2>ทดสอบบันทึกพร้อมกัน (ผู้ดูแลระบบ)</h2>
     <div class="muted">ส่งคำสั่งบันทึกพร้อมกันหลายรายการ แล้วตรวจว่าไม่มีรายการซ้ำหรือหาย (ใช้ข้อมูลทดสอบเท่านั้น)</div>
-    <p>จำนวน: <input id="n" type="number" min="1" max="200" value="50"> <button id="run" disabled>เริ่มทดสอบ</button></p>
+    <p>จำนวน: <input id="n" type="number" min="1" max="200" value="50"> <button id="run">เริ่มทดสอบ</button></p>
     <div id="load-result" role="status"></div>
   </div>
 
@@ -48,13 +79,17 @@
 <script src="config.js"></script>
 <script>
   var CFG = window.MEDSUP_CONFIG;
-  var session = null;
+  var session = null, me = null, rolesAvailable = [];
 
+  function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
-  function show(id, html) { document.getElementById(id).innerHTML = html; }
+  function show(id, html) { $(id).innerHTML = html; }
+  function el(tag, text, cls) { var e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; if (cls) e.className = cls; return e; }
 
-  /* เรียก API (Apps Script) ด้วย text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight
-     เมื่อผิดพลาดจะแจ้งผู้ใช้เป็นภาษาไทย และไม่ล้างข้อมูลที่กรอก */
+  var FIELD_MSG = { required: 'ต้องกรอก', invalid_email: 'รูปแบบอีเมลไม่ถูกต้อง', too_long: 'ยาวเกินไป', must_be_text: 'ต้องเป็นข้อความ',
+                    unknown_field: 'ช่องไม่ถูกต้อง', bad_item: 'ค่าไม่ถูกต้อง' };
+
+  /* ---------- เรียก API ---------- */
   var stats = { busyRetries: 0 };
   var MAX_BUSY_RETRIES = 8;
 
@@ -79,37 +114,139 @@
           stats.busyRetries++;
           return new Promise(function (res) { setTimeout(res, 800 + Math.random() * 2200); }).then(function () { return attempt(n + 1); });
         }
+        if (!r.ok && r.code === 'UNAUTHENTICATED' && session) { signedOut('เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง'); }
         return r;
       });
     }
     return attempt(0);
   }
 
+  function errText(r) { return r.message + (r.ref ? ' (รหัสอ้างอิง ' + r.ref + ')' : ''); }
+
+  /* ---------- เข้าสู่ระบบ ---------- */
   function initGoogle() {
     if (!CFG.GOOGLE_CLIENT_ID) { show('login-area', '<span class="fail">ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID</span>'); return; }
     try {
       google.accounts.id.initialize({ client_id: CFG.GOOGLE_CLIENT_ID, callback: onCredential });
       show('login-area', '');
-      google.accounts.id.renderButton(document.getElementById('login-area'), { theme: 'outline', size: 'large', locale: 'th' });
+      google.accounts.id.renderButton($('login-area'), { theme: 'outline', size: 'large', locale: 'th' });
     } catch (e) { show('login-area', '<span class="fail">โหลดปุ่ม Google ไม่สำเร็จ: ' + esc(e.message) + '</span>'); }
   }
 
   function onCredential(resp) {
     show('login-result', 'กำลังตรวจสอบ...');
     callApi('auth.login', { id_token: resp.credential }).then(function (r) {
-      if (!r.ok) { show('login-result', '<span class="fail">' + esc(r.message) + ' (' + esc(r.code) + (r.ref ? ' ' + esc(r.ref) : '') + ')</span>'); return; }
-      session = r.data.session;
-      return callApi('auth.whoami').then(function (w) {
-        if (!w.ok) { show('login-result', '<span class="fail">ตรวจสอบตัวตนไม่สำเร็จ (' + esc(w.code) + ')</span>'); return; }
-        show('login-result', '<span class="pass">ผ่าน</span> — เข้าสู่ระบบเป็น <b>' + esc(w.data.email) + '</b>');
-        document.getElementById('run').disabled = false;
-      });
+      if (!r.ok) { show('login-result', '<span class="fail">' + esc(errText(r)) + '</span>'); return; }
+      session = r.data.session; me = r.data.profile;
+      show('login-result', '<span class="pass">เข้าสู่ระบบสำเร็จ</span>');
+      renderSignedIn();
     });
   }
 
-  document.getElementById('run').addEventListener('click', function () {
+  function signedOut(msg) {
+    session = null; me = null;
+    $('profile-card').classList.add('hidden'); $('admin-card').classList.add('hidden'); $('load-card').classList.add('hidden');
+    show('login-result', msg ? '<span class="fail">' + esc(msg) + '</span>' : '');
+  }
+
+  $('logout').addEventListener('click', function () {
+    var btn = this; btn.disabled = true;
+    callApi('auth.logout').then(function () { btn.disabled = false; signedOut(''); if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); });
+  });
+
+  function chips(list) { return list.map(function (r) { return '<span class="chip">' + esc(r) + '</span>'; }).join(''); }
+  function isAdmin() { return me && me.roles.indexOf('ADMIN') >= 0; }
+
+  function renderSignedIn() {
+    show('profile', '<div><b>' + esc(me.full_name) + '</b>' + (me.position ? ' · ' + esc(me.position) : '') + '</div>' +
+      '<div class="muted">' + esc(me.email) + '</div><div>บทบาท: ' + chips(me.roles) + '</div>');
+    $('profile-card').classList.remove('hidden');
+    $('admin-card').classList.toggle('hidden', !isAdmin());
+    $('load-card').classList.toggle('hidden', !isAdmin());
+    if (isAdmin()) loadUsers();
+  }
+
+  /* ---------- จัดการผู้ใช้ (ADMIN) ---------- */
+  function loadUsers() {
+    show('admin-msg', 'กำลังโหลดรายชื่อ...');
+    callApi('users.list').then(function (r) {
+      if (!r.ok) { show('admin-msg', '<span class="fail">' + esc(errText(r)) + '</span>'); return; }
+      show('admin-msg', '');
+      rolesAvailable = r.data.roles_available;
+      renderRoleBoxes();
+      renderUsers(r.data.users);
+    });
+  }
+
+  function renderRoleBoxes() {
+    var box = $('f-roles'); if (box.childNodes.length) return;
+    rolesAvailable.forEach(function (role) {
+      var l = el('label'); l.style.display = 'inline-block'; l.style.marginRight = '12px';
+      var c = document.createElement('input'); c.type = 'checkbox'; c.value = role;
+      l.appendChild(c); l.appendChild(document.createTextNode(' ' + role)); box.appendChild(l);
+    });
+  }
+
+  function renderUsers(users) {
+    var tb = $('user-rows'); tb.innerHTML = '';
+    users.forEach(function (u) {
+      var tr = el('tr', null, u.is_active ? '' : 'off');
+      var c1 = el('td'); c1.appendChild(el('b', u.full_name)); c1.appendChild(el('div', u.email, 'muted'));
+      if (u.position) c1.appendChild(el('div', u.position, 'muted'));
+      var c2 = el('td'); c2.innerHTML = chips(u.roles);
+      var c3 = el('td', u.is_active ? 'ใช้งานอยู่' : 'ปิดใช้งาน');
+      var c4 = el('td');
+
+      var sel = document.createElement('select');
+      rolesAvailable.forEach(function (r) { var o = el('option', r); o.value = r; sel.appendChild(o); });
+      var grant = el('button', 'ให้บทบาท', 'secondary'), revoke = el('button', 'ถอนบทบาท', 'secondary');
+      var toggle = el('button', u.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน', 'secondary');
+      [grant, revoke, toggle].forEach(function (b) { b.style.margin = '2px'; });
+      grant.addEventListener('click', function () { act(this, 'users.grant_role', { user_id: u.id, role: sel.value }); });
+      revoke.addEventListener('click', function () { act(this, 'users.revoke_role', { user_id: u.id, role: sel.value }); });
+      toggle.addEventListener('click', function () { act(this, 'users.set_active', { id: u.id, version: u.version, is_active: !u.is_active }); });
+      [sel, grant, revoke, toggle].forEach(function (x) { c4.appendChild(x); });
+
+      [c1, c2, c3, c4].forEach(function (c) { tr.appendChild(c); });
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ปุ่มกดแล้วปิดชั่วคราว รอเซิร์ฟเวอร์ยืนยันก่อนแสดงผล — ผิดพลาดแล้วลองใหม่ได้ */
+  function act(btn, action, payload) {
+    btn.disabled = true; show('admin-msg', 'กำลังดำเนินการ...');
+    callApi(action, payload).then(function (r) {
+      btn.disabled = false;
+      if (!r.ok) { show('admin-msg', '<span class="fail">' + esc(errText(r)) + '</span>'); return; }
+      show('admin-msg', '<span class="pass">บันทึกสำเร็จ</span>');
+      loadUsers();
+    });
+  }
+
+  $('add-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var btn = $('add-btn');
+    ['email', 'full_name', 'position'].forEach(function (f) { $('e-' + f).textContent = ''; });
+    var roles = [].slice.call($('f-roles').querySelectorAll('input:checked')).map(function (c) { return c.value; });
+    var payload = { email: $('f-email').value, full_name: $('f-name').value, position: $('f-pos').value };
+    if (roles.length) payload.roles = roles;
+    btn.disabled = true; show('add-msg', 'กำลังบันทึก...');
+    callApi('users.upsert', payload).then(function (r) {
+      btn.disabled = false;
+      if (!r.ok) {
+        show('add-msg', '<span class="fail">' + esc(r.message) + '</span>');
+        if (r.fields) Object.keys(r.fields).forEach(function (f) { var e = $('e-' + f); if (e) e.textContent = FIELD_MSG[r.fields[f]] || 'ไม่ถูกต้อง'; });
+        return;                                   // ข้อมูลที่กรอกไม่ถูกล้าง
+      }
+      show('add-msg', '<span class="pass">เพิ่มผู้ใช้สำเร็จ</span>');
+      $('add-form').reset(); loadUsers();
+    });
+  });
+
+  /* ---------- ทดสอบบันทึกพร้อมกัน (ผู้ดูแลระบบ) ---------- */
+  $('run').addEventListener('click', function () {
     var btn = this;
-    var n = Math.max(1, Math.min(200, parseInt(document.getElementById('n').value, 10) || 50));
+    var n = Math.max(1, Math.min(200, parseInt($('n').value, 10) || 50));
     var runId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
     btn.disabled = true; btn.textContent = 'กำลังดำเนินการ...';
     show('load-result', 'กำลังส่ง ' + n + ' รายการพร้อมกัน...');
@@ -126,12 +263,12 @@
         var pass = ok === n && d.run_rows === ok && d.duplicate_seq_all === 0 && d.out_of_order_all === 0 && d.run_duplicate_client_seq === 0;
         show('load-result', '<p class="' + (pass ? 'pass">ผ่าน' : 'fail">ไม่ผ่าน') + '</p><pre>' +
           esc(JSON.stringify({ run_id: runId, sent: n, success: ok, errors: errors, busy_retries: stats.busyRetries, seconds: seconds, sheet: d }, null, 2)) +
-          '</pre><div class="muted">คัดลอกผลในกรอบนี้ส่งกลับมา</div>');
+          '</pre>');
       });
     }).finally(function () { btn.disabled = false; btn.textContent = 'เริ่มทดสอบ'; });
   });
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"
-        onerror="show('login-area', '&lt;span class=&quot;fail&quot;&gt;โหลดสคริปต์ Google Sign-In ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต&lt;/span&gt;')"></script>
+        onerror="document.getElementById('login-area').textContent = 'โหลดสคริปต์ Google Sign-In ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต'"></script>
 </body>
 </html>
