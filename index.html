@@ -55,7 +55,10 @@
 
   /* เรียก API (Apps Script) ด้วย text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight
      เมื่อผิดพลาดจะแจ้งผู้ใช้เป็นภาษาไทย และไม่ล้างข้อมูลที่กรอก */
-  function callApi(action, payload) {
+  var stats = { busyRetries: 0 };
+  var MAX_BUSY_RETRIES = 8;
+
+  function callOnce(action, payload) {
     var ctrl = new AbortController();
     var timer = setTimeout(function () { ctrl.abort(); }, 45000);
     return fetch(CFG.API_URL, {
@@ -65,6 +68,21 @@
     }).then(function (res) { return res.json(); })
       .catch(function () { return { ok: false, code: 'NETWORK', message: 'เชื่อมต่อไม่สำเร็จ ข้อมูลที่กรอกยังอยู่ กรุณาลองใหม่' }; })
       .finally(function () { clearTimeout(timer); });
+  }
+
+  /* ลองใหม่อัตโนมัติเฉพาะ BUSY: เซิร์ฟเวอร์ตอบ BUSY ก่อนเขียนข้อมูลใดๆ (ยังไม่ได้ล็อก) จึงลองซ้ำได้อย่างปลอดภัย
+     ความผิดพลาดแบบอื่น (เช่น เครือข่ายหลุด) ไม่ลองซ้ำเองจนกว่าจะมีระบบกันบันทึกซ้ำ (request_id, C5) */
+  function callApi(action, payload) {
+    function attempt(n) {
+      return callOnce(action, payload).then(function (r) {
+        if (!r.ok && r.code === 'BUSY' && n < MAX_BUSY_RETRIES) {
+          stats.busyRetries++;
+          return new Promise(function (res) { setTimeout(res, 800 + Math.random() * 2200); }).then(function () { return attempt(n + 1); });
+        }
+        return r;
+      });
+    }
+    return attempt(0);
   }
 
   function initGoogle() {
@@ -95,6 +113,7 @@
     var runId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
     btn.disabled = true; btn.textContent = 'กำลังดำเนินการ...';
     show('load-result', 'กำลังส่ง ' + n + ' รายการพร้อมกัน...');
+    stats.busyRetries = 0;
     var started = Date.now(), calls = [];
     for (var i = 1; i <= n; i++) calls.push(callApi('spike.write', { run_id: runId, client_seq: i }));
     Promise.all(calls).then(function (results) {
@@ -106,7 +125,7 @@
         var d = s.data;
         var pass = ok === n && d.run_rows === ok && d.duplicate_seq_all === 0 && d.out_of_order_all === 0 && d.run_duplicate_client_seq === 0;
         show('load-result', '<p class="' + (pass ? 'pass">ผ่าน' : 'fail">ไม่ผ่าน') + '</p><pre>' +
-          esc(JSON.stringify({ run_id: runId, sent: n, success: ok, errors: errors, seconds: seconds, sheet: d }, null, 2)) +
+          esc(JSON.stringify({ run_id: runId, sent: n, success: ok, errors: errors, busy_retries: stats.busyRetries, seconds: seconds, sheet: d }, null, 2)) +
           '</pre><div class="muted">คัดลอกผลในกรอบนี้ส่งกลับมา</div>');
       });
     }).finally(function () { btn.disabled = false; btn.textContent = 'เริ่มทดสอบ'; });
