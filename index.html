@@ -103,13 +103,21 @@
   var stats = { busyRetries: 0 };
   var MAX_BUSY_RETRIES = 8;
 
-  function callOnce(action, payload) {
+  /* คำสั่งที่แก้ข้อมูล: ส่ง request_id (สร้างครั้งเดียวต่อการกระทำของผู้ใช้ ใช้ซ้ำเมื่อลองใหม่) — Backend กันบันทึกซ้ำให้ */
+  var WRITE_ACTIONS = ['users.upsert', 'users.set_active', 'users.grant_role', 'users.revoke_role'];
+  function newRequestId() {
+    return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+  }
+
+  function callOnce(action, payload, requestId) {
     var ctrl = new AbortController();
     var timer = setTimeout(function () { ctrl.abort(); }, 45000);
+    var body = { action: action, session: session, payload: payload || {} };
+    if (requestId) body.request_id = requestId;
     return fetch(CFG.API_URL, {
       method: 'POST', redirect: 'follow', signal: ctrl.signal,
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: action, session: session, payload: payload || {} })
+      body: JSON.stringify(body)
     }).then(function (res) { return res.json(); })
       .catch(function () { return { ok: false, code: 'NETWORK', message: 'เชื่อมต่อไม่สำเร็จ ข้อมูลที่กรอกยังอยู่ กรุณาลองใหม่' }; })
       .finally(function () { clearTimeout(timer); });
@@ -118,11 +126,19 @@
   /* ลองใหม่อัตโนมัติเฉพาะ BUSY: เซิร์ฟเวอร์ตอบ BUSY ก่อนเขียนข้อมูลใดๆ (ยังไม่ได้ล็อก) จึงลองซ้ำได้อย่างปลอดภัย
      ความผิดพลาดแบบอื่น (เช่น เครือข่ายหลุด) ไม่ลองซ้ำเองจนกว่าจะมีระบบกันบันทึกซ้ำ (request_id, C5) */
   function callApi(action, payload) {
+    var isWrite = WRITE_ACTIONS.indexOf(action) >= 0;
+    var requestId = isWrite ? newRequestId() : null;
+    var netRetries = 0;
     function attempt(n) {
-      return callOnce(action, payload).then(function (r) {
+      return callOnce(action, payload, requestId).then(function (r) {
         if (!r.ok && r.code === 'BUSY' && n < MAX_BUSY_RETRIES) {
           stats.busyRetries++;
           return new Promise(function (res) { setTimeout(res, 800 + Math.random() * 2200); }).then(function () { return attempt(n + 1); });
+        }
+        /* เครือข่ายหลุดกับคำสั่งเขียน: ลองใหม่ด้วย request_id เดิมได้ (ถ้าครั้งแรกสำเร็จไปแล้ว Backend คืนผลเดิม ไม่บันทึกซ้ำ) */
+        if (!r.ok && r.code === 'NETWORK' && isWrite && netRetries < 2) {
+          netRetries++;
+          return new Promise(function (res) { setTimeout(res, 1500); }).then(function () { return attempt(n); });
         }
         if (!r.ok && r.code === 'UNAUTHENTICATED' && session) { signedOut('เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง'); }
         return r;
