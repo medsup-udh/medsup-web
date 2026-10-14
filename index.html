@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ระบบเอกสารงานวัสดุการแพทย์</title>
+  <style>
+    :root { --bg:#f5f6f8; --card:#fff; --text:#1f2933; --muted:#616e7c; --line:#e4e7eb; --brand:#1b6ec2; --ok:#0a7a3e; --bad:#c0392b; --code:#eef1f5; }
+    :root:not([data-theme="light"]) { color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#12161b; --card:#1b2129; --text:#e6e9ee; --muted:#9aa5b1; --line:#2b333d; --brand:#5aa2ee; --ok:#4cc38a; --bad:#ff7b6b; --code:#252d37; } }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:16px; background:var(--bg); color:var(--text); font-family:'Sarabun','Tahoma',sans-serif; line-height:1.55; }
+    main { max-width:720px; margin:0 auto; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:12px; }
+    h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:0 0 8px; }
+    .muted { color:var(--muted); font-size:14px; }
+    button { font:inherit; padding:8px 16px; border:0; border-radius:6px; background:var(--brand); color:#fff; cursor:pointer; }
+    button:disabled { opacity:.55; cursor:progress; }
+    input[type=number] { font:inherit; width:90px; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--text); }
+    pre { background:var(--code); padding:10px; border-radius:6px; white-space:pre-wrap; word-break:break-all; font-size:13px; margin:8px 0 0; }
+    .pass { color:var(--ok); font-weight:700; } .fail { color:var(--bad); font-weight:700; }
+    footer { text-align:center; margin-top:16px; } a { color:var(--brand); }
+  </style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>ระบบเอกสารงานวัสดุการแพทย์</h1>
+    <div class="muted">หน้าทดสอบระบบ (สภาพแวดล้อมทดสอบ) — ยังไม่ใช่ระบบใช้งานจริง</div>
+  </div>
+
+  <div class="card">
+    <h2>ขั้นที่ 1: เข้าสู่ระบบด้วยบัญชี Google</h2>
+    <div id="login-area" class="muted">กำลังโหลดปุ่มเข้าสู่ระบบ...</div>
+    <p id="login-result" role="status"></p>
+  </div>
+
+  <div class="card">
+    <h2>ขั้นที่ 2: ทดสอบบันทึกพร้อมกัน</h2>
+    <div class="muted">ส่งคำสั่งบันทึกพร้อมกันหลายรายการ แล้วตรวจว่าไม่มีรายการซ้ำหรือหาย (ใช้ข้อมูลทดสอบเท่านั้น)</div>
+    <p>จำนวน: <input id="n" type="number" min="1" max="200" value="50"> <button id="run" disabled>เริ่มทดสอบ</button></p>
+    <div id="load-result" role="status"></div>
+  </div>
+
+  <footer class="muted"><a href="privacy.html">นโยบายความเป็นส่วนตัว</a></footer>
+</main>
+
+<script src="config.js"></script>
+<script>
+  var CFG = window.MEDSUP_CONFIG;
+  var session = null;
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+  function show(id, html) { document.getElementById(id).innerHTML = html; }
+
+  /* เรียก API (Apps Script) ด้วย text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight
+     เมื่อผิดพลาดจะแจ้งผู้ใช้เป็นภาษาไทย และไม่ล้างข้อมูลที่กรอก */
+  function callApi(action, payload) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 45000);
+    return fetch(CFG.API_URL, {
+      method: 'POST', redirect: 'follow', signal: ctrl.signal,
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, session: session, payload: payload || {} })
+    }).then(function (res) { return res.json(); })
+      .catch(function () { return { ok: false, code: 'NETWORK', message: 'เชื่อมต่อไม่สำเร็จ ข้อมูลที่กรอกยังอยู่ กรุณาลองใหม่' }; })
+      .finally(function () { clearTimeout(timer); });
+  }
+
+  function initGoogle() {
+    if (!CFG.GOOGLE_CLIENT_ID) { show('login-area', '<span class="fail">ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID</span>'); return; }
+    try {
+      google.accounts.id.initialize({ client_id: CFG.GOOGLE_CLIENT_ID, callback: onCredential });
+      show('login-area', '');
+      google.accounts.id.renderButton(document.getElementById('login-area'), { theme: 'outline', size: 'large', locale: 'th' });
+    } catch (e) { show('login-area', '<span class="fail">โหลดปุ่ม Google ไม่สำเร็จ: ' + esc(e.message) + '</span>'); }
+  }
+
+  function onCredential(resp) {
+    show('login-result', 'กำลังตรวจสอบ...');
+    callApi('auth.login', { id_token: resp.credential }).then(function (r) {
+      if (!r.ok) { show('login-result', '<span class="fail">' + esc(r.message) + ' (' + esc(r.code) + (r.ref ? ' ' + esc(r.ref) : '') + ')</span>'); return; }
+      session = r.data.session;
+      return callApi('auth.whoami').then(function (w) {
+        if (!w.ok) { show('login-result', '<span class="fail">ตรวจสอบตัวตนไม่สำเร็จ (' + esc(w.code) + ')</span>'); return; }
+        show('login-result', '<span class="pass">ผ่าน</span> — เข้าสู่ระบบเป็น <b>' + esc(w.data.email) + '</b>');
+        document.getElementById('run').disabled = false;
+      });
+    });
+  }
+
+  document.getElementById('run').addEventListener('click', function () {
+    var btn = this;
+    var n = Math.max(1, Math.min(200, parseInt(document.getElementById('n').value, 10) || 50));
+    var runId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+    btn.disabled = true; btn.textContent = 'กำลังดำเนินการ...';
+    show('load-result', 'กำลังส่ง ' + n + ' รายการพร้อมกัน...');
+    var started = Date.now(), calls = [];
+    for (var i = 1; i <= n; i++) calls.push(callApi('spike.write', { run_id: runId, client_seq: i }));
+    Promise.all(calls).then(function (results) {
+      var seconds = ((Date.now() - started) / 1000).toFixed(1);
+      var ok = results.filter(function (r) { return r.ok; }).length, errors = {};
+      results.forEach(function (r) { if (!r.ok) errors[r.code] = (errors[r.code] || 0) + 1; });
+      return callApi('spike.stats', { run_id: runId }).then(function (s) {
+        if (!s.ok) { show('load-result', '<span class="fail">อ่านผลไม่สำเร็จ (' + esc(s.code) + ')</span>'); return; }
+        var d = s.data;
+        var pass = ok === n && d.run_rows === ok && d.duplicate_seq_all === 0 && d.out_of_order_all === 0 && d.run_duplicate_client_seq === 0;
+        show('load-result', '<p class="' + (pass ? 'pass">ผ่าน' : 'fail">ไม่ผ่าน') + '</p><pre>' +
+          esc(JSON.stringify({ run_id: runId, sent: n, success: ok, errors: errors, seconds: seconds, sheet: d }, null, 2)) +
+          '</pre><div class="muted">คัดลอกผลในกรอบนี้ส่งกลับมา</div>');
+      });
+    }).finally(function () { btn.disabled = false; btn.textContent = 'เริ่มทดสอบ'; });
+  });
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"
+        onerror="show('login-area', '&lt;span class=&quot;fail&quot;&gt;โหลดสคริปต์ Google Sign-In ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต&lt;/span&gt;')"></script>
+</body>
+</html>
