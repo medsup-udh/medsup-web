@@ -49,6 +49,16 @@
     <p><button class="secondary" id="logout">ออกจากระบบ</button></p>
   </div>
 
+  <div class="card hidden" id="master-card">
+    <h2>ข้อมูลหลัก (อ่านอย่างเดียว)</h2>
+    <div class="muted">วัสดุ ผู้ขาย หน่วยงาน ที่นำเข้าจากไฟล์ Excel · ค้นหาจากรหัสหรือชื่อได้</div>
+    <p id="master-tabs"></p>
+    <p><input type="text" id="master-q" placeholder="ค้นหา..." style="width:100%;max-width:420px"></p>
+    <div id="master-count" class="muted"></div>
+    <div class="scroll"><table><thead id="master-head"></thead><tbody id="master-rows"></tbody></table></div>
+    <p id="master-msg" role="status"></p>
+  </div>
+
   <div class="card hidden" id="admin-card">
     <h2>จัดการผู้ใช้ (ผู้ดูแลระบบ)</h2>
     <div class="muted">เพิ่มผู้ใช้ด้วยอีเมล Google ของเขา แล้วกำหนดบทบาท ผู้ที่ไม่อยู่ในรายชื่อจะเข้าสู่ระบบไม่ได้</div>
@@ -145,7 +155,8 @@
 
   function signedOut(msg) {
     session = null; me = null;
-    $('profile-card').classList.add('hidden'); $('admin-card').classList.add('hidden'); $('load-card').classList.add('hidden');
+    $('profile-card').classList.add('hidden'); $('master-card').classList.add('hidden');
+    $('admin-card').classList.add('hidden'); $('load-card').classList.add('hidden');
     show('login-result', msg ? '<span class="fail">' + esc(msg) + '</span>' : '');
   }
 
@@ -161,10 +172,57 @@
     show('profile', '<div><b>' + esc(me.full_name) + '</b>' + (me.position ? ' · ' + esc(me.position) : '') + '</div>' +
       '<div class="muted">' + esc(me.email) + '</div><div>บทบาท: ' + chips(me.roles) + '</div>');
     $('profile-card').classList.remove('hidden');
+    $('master-card').classList.remove('hidden'); masterCache = {}; openMaster('items');
     $('admin-card').classList.toggle('hidden', !isAdmin());
     $('load-card').classList.toggle('hidden', !isAdmin());
     if (isAdmin()) loadUsers();
   }
+
+  /* ---------- ข้อมูลหลัก (อ่านอย่างเดียว) ---------- */
+  var MASTER_KINDS = [
+    { key: 'items', label: 'วัสดุ', action: 'master.items', cols: [['รหัส', 'code'], ['ชื่อรายการ', 'name']] },
+    { key: 'vendors', label: 'ผู้ขาย', action: 'master.vendors', cols: [['ชื่อ', 'name']] },
+    { key: 'departments', label: 'หน่วยงาน', action: 'master.departments', cols: [['ชื่อ', 'name']] },
+    { key: 'pending_items', label: 'ยังไม่มีรหัส', action: 'master.pending_items', roles: ['ADMIN', 'OFFICER'],
+      cols: [['ชื่อรายการ', 'name'], ['หน่วยงานที่ขอ (ตามไฟล์เดิม)', 'requested_by_text']] }
+  ];
+  var masterCache = {}, masterKind = null, MASTER_SHOW = 100;
+
+  function renderMasterTabs() {
+    var box = $('master-tabs'); box.innerHTML = '';
+    MASTER_KINDS.filter(function (k) { return !k.roles || k.roles.some(function (r) { return me.roles.indexOf(r) >= 0; }); })
+      .forEach(function (k) {
+        var b = el('button', k.label, k.key === masterKind ? '' : 'secondary'); b.style.marginRight = '6px';
+        b.addEventListener('click', function () { openMaster(k.key); });
+        box.appendChild(b);
+      });
+  }
+
+  function openMaster(key) {
+    masterKind = key; renderMasterTabs(); $('master-q').value = '';
+    var kind = MASTER_KINDS.filter(function (k) { return k.key === key; })[0];
+    if (masterCache[key]) { renderMasterRows(); return; }
+    show('master-msg', 'กำลังโหลด...'); $('master-rows').innerHTML = '';
+    callApi(kind.action).then(function (r) {
+      if (!r.ok) { show('master-msg', '<span class="fail">' + esc(errText(r)) + '</span>'); return; }
+      show('master-msg', ''); masterCache[key] = r.data.rows; renderMasterRows();
+    });
+  }
+
+  function renderMasterRows() {
+    var kind = MASTER_KINDS.filter(function (k) { return k.key === masterKind; })[0];
+    var all = masterCache[masterKind] || [], q = $('master-q').value.trim().toLowerCase();
+    var rows = q ? all.filter(function (r) { return kind.cols.some(function (c) { return String(r[c[1]] || '').toLowerCase().indexOf(q) >= 0; }); }) : all;
+    var head = $('master-head'); head.innerHTML = '';
+    var htr = el('tr'); kind.cols.forEach(function (c) { htr.appendChild(el('th', c[0])); }); head.appendChild(htr);
+    var tb = $('master-rows'); tb.innerHTML = '';
+    rows.slice(0, MASTER_SHOW).forEach(function (r) {
+      var tr = el('tr'); kind.cols.forEach(function (c) { tr.appendChild(el('td', r[c[1]])); }); tb.appendChild(tr);
+    });
+    $('master-count').textContent = 'ทั้งหมด ' + all.length + ' รายการ' + (q ? ' · พบ ' + rows.length : '') +
+      (rows.length > MASTER_SHOW ? ' · แสดง ' + MASTER_SHOW + ' รายการแรก (พิมพ์ค้นหาเพื่อกรอง)' : '');
+  }
+  $('master-q').addEventListener('input', function () { if (masterKind) renderMasterRows(); });
 
   /* ---------- จัดการผู้ใช้ (ADMIN) ---------- */
   function loadUsers() {
