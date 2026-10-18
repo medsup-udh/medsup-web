@@ -221,6 +221,10 @@
       if (!alive()) return; box.remove();
       if (!r.ok) { add(view, add(el('div', null, 'card'), el('span', errText(r), 'fail'))); return; }
       var d = r.data;
+      if (d.admin && d.admin.backup && d.admin.backup.warn) {
+        var W = { never: 'ยังไม่เคยสำรองข้อมูลอัตโนมัติ — ติดตั้งตัวตั้งเวลาตามคู่มือผู้ดูแลระบบ (docs/ADMIN_GUIDE.md)', failed: 'การสำรองข้อมูลครั้งล่าสุดล้มเหลว — ตรวจสอบโดยเร็ว', stale: 'ไม่มีการสำรองข้อมูลสำเร็จเกิน 2 วัน — ตรวจสอบตัวตั้งเวลา' };
+        view.appendChild(el('div', W[d.admin.backup.warn] || 'ตรวจสอบการสำรองข้อมูล', 'notice', { role: 'alert' }));
+      }
       var grid = el('div', null, 'grid');
       add(grid, statLink('เอกสารที่ฉันเห็น', d.totals.documents, '#/documents'), statLink('ของฉัน', d.totals.mine, '#/documents'),
           statLink('งานรอฉัน', d.totals.my_tasks, '#/', true), statLink('ค้างนาน (เกิน ' + d.stale.days + ' วัน)', d.stale.count, '#/', true));
@@ -254,6 +258,10 @@
         var kv = el('dl', null, 'kv');
         add(kv, el('dt', 'ผู้ใช้ที่ใช้งานอยู่'), el('dd', String(d.admin.users)),
             el('dt', 'ข้อมูลหลัก'), el('dd', 'วัสดุ ' + d.admin.master.items + ' · ผู้ขาย ' + d.admin.master.vendors + ' · หน่วยงาน ' + d.admin.master.departments + ' · ยังไม่มีรหัส ' + d.admin.master.pending_items));
+        if (d.admin.backup) {
+          var bk = d.admin.backup, last = bk.last, btxt = !last ? 'ยังไม่เคยสำรอง' : last.ok ? fmtDate(last.at) + ' (สำเร็จ · วันที่ ' + last.date + ')' : 'ล้มเหลวเมื่อ ' + fmtDate(last.at) + (last.message ? ' — ' + last.message : '');
+          add(kv, el('dt', 'สำรองข้อมูลล่าสุด'), el('dd', btxt, bk.warn ? 'fail' : ''));
+        }
         if (d.admin.storage) {
           var pct = Math.min(100, Math.round(d.admin.storage.used_bytes * 100 / d.admin.storage.limit_bytes));
           var bar = el('div', null, 'bar'); var fill = el('i'); fill.style.width = pct + '%'; bar.appendChild(fill);
