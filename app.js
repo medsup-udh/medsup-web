@@ -388,7 +388,7 @@
       b.addEventListener('click', function () { runAction(b, d, a, refresh); });
       acts.appendChild(b);
     });
-    if (isM1 && d.doc_no && md.report) acts.appendChild(el('a', 'พิมพ์ / PDF', 'btn secondary', { href: '#/print/' + encodeURIComponent(d.id) }));
+    if (isM1 && d.doc_no && md.report && d.status !== 'CANCELLED') acts.appendChild(el('a', 'พิมพ์ / PDF', 'btn secondary', { href: '#/print/' + encodeURIComponent(d.id) }));
     if (acts.childNodes.length) head.appendChild(acts);
     if (isM1 && d.status === 'RETURNED' && md.can_edit) head.appendChild(el('div', 'พัสดุส่งกลับให้แก้ไข — ดูเหตุผลในประวัติด้านล่าง แก้แล้วกดส่งอีกครั้ง', 'notice'));
     view.appendChild(head);
@@ -667,7 +667,7 @@
       fileIn.value = ''; showFiles();
     });
 
-    var send = el('button', 'ส่งรายงาน', '', { type: 'submit' }), draft = el('button', 'บันทึกร่าง', 'secondary', { type: 'button' });
+    var send = el('button', 'ส่งรายงาน', '', { type: 'button' }), draft = el('button', 'บันทึกร่าง', 'secondary', { type: 'button' });
     var back = el('a', 'ยกเลิก', '', { href: st.docId ? '#/documents/' + encodeURIComponent(st.docId) : '#/' });
     var restored = el('div', null, 'notice hidden', { role: 'status' });
     add(form, add(el('div', null, 'actions'), send, draft, back));
@@ -703,7 +703,11 @@
       add(restored, document.createTextNode('กู้ข้อความที่พิมพ์ค้างไว้แล้ว '), undo);
     }
     var t = null;
-    form.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { storeSet(draftKey, { version: st.version, values: snapshot() }); }, 400); });
+    form.addEventListener('input', function (ev) {
+      var k = ev.target && ev.target.id ? ev.target.id.replace(/^m1-/, '') : '';
+      if (errBox[k]) { errBox[k].textContent = ''; ev.target.removeAttribute('aria-invalid'); }   // แก้ช่องไหน ข้อความเตือนของช่องนั้นหาย
+      clearTimeout(t); t = setTimeout(function () { storeSet(draftKey, { version: st.version, values: snapshot() }); }, 400);
+    });
 
     // ---- ตรวจ / รวบรวมข้อมูล ----
     function collect() {
@@ -788,8 +792,9 @@
     }
     function toDetail() { location.hash = '#/documents/' + encodeURIComponent(st.docId); }
 
-    form.addEventListener('submit', function (ev) {
-      ev.preventDefault();
+    /* กด Enter ในช่องข้อความ (รวมตอนเลือกจากรายการ) ต้องไม่ส่งรายงานโดยไม่ตั้งใจ — ส่งได้ทางปุ่มเท่านั้น */
+    form.addEventListener('submit', function (ev) { ev.preventDefault(); });
+    send.addEventListener('click', function () {
       busy(send, function () {
         var p = collect();
         if (showErrors(check(p, true))) { toast('กรอกช่องที่มี * ให้ครบ', true); return; }
@@ -919,8 +924,8 @@
       var d = r.data.document, md = r.data.module_data;
       var bar = el('div', null, 'card no-print actions');
       add(bar, el('a', '← กลับ', '', { href: '#/documents/' + encodeURIComponent(d.id) }));
-      if (d.module !== 'M1' || !md || !md.report || !d.doc_no) {
-        add(bar, el('span', 'พิมพ์ได้เฉพาะรายงานปัญหาที่ส่งแล้ว', 'muted')); view.appendChild(bar); return;
+      if (d.module !== 'M1' || !md || !md.report || !d.doc_no || d.status === 'CANCELLED') {
+        add(bar, el('span', d.status === 'CANCELLED' ? 'เอกสารนี้ถูกยกเลิกแล้ว — ไม่มีให้พิมพ์' : 'พิมพ์ได้เฉพาะรายงานปัญหาที่ส่งแล้ว', 'muted')); view.appendChild(bar); return;
       }
       var pr = el('button', 'พิมพ์ / บันทึกเป็น PDF', '', { type: 'button' });
       pr.addEventListener('click', function () { window.print(); });

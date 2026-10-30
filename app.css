@@ -112,7 +112,7 @@ a.btn.secondary { background:transparent; color:var(--brand); border:1px solid v
 .paper .sig .role { font-weight:600; }
 .paper .p-note { margin-top:18px; }
 .paper .p-sys { margin-top:14px; padding-top:6px; border-top:1px solid #bbb; font-size:10pt; color:#333; }
-@media (max-width:640px) { .paper { padding:16px; font-size:12pt; } .paper .sigs { flex-direction:column; gap:8px; } }
+@media (max-width:640px) { .m1form .actions { position:static; border-top:0; } .paper { padding:16px; font-size:12pt; } .paper .sigs { flex-direction:column; gap:8px; } }
 @media print {
   @page { size:A4; margin:14mm 16mm; }
   body { background:#fff !important; color:#000; }
