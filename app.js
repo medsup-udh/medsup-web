@@ -38,10 +38,11 @@
 
   /* ป้ายภาษาไทยของสถานะ/คำสั่ง — ถ้อยคำชั่วคราว รอผู้ใช้ยืนยันตอนกำหนดขั้นตอนของแต่ละ Menu */
   var STATUS_LABEL = { DRAFT: 'แบบร่าง', SUBMITTED: 'ส่งแล้ว', IN_REVIEW: 'กำลังตรวจสอบ', RETURNED: 'ส่งกลับแก้ไข', APPROVED: 'อนุมัติแล้ว',
-                       COMPLETED: 'เสร็จสิ้น', REJECTED: 'ไม่อนุมัติ', CANCELLED: 'ยกเลิก' };
-  var ACTION_LABEL = { SUBMIT: 'ส่ง', RECEIVE: 'รับเรื่อง', RETURN: 'ส่งกลับแก้ไข', COMPLETE: 'ปิดงาน', CANCEL: 'ยกเลิก', APPROVE: 'อนุมัติ', REJECT: 'ไม่อนุมัติ' };
+                       COMPLETED: 'เสร็จสิ้น', REJECTED: 'ไม่อนุมัติ', CANCELLED: 'ยกเลิก', OPEN: 'เปิดประเมิน', CLOSED: 'ปิดรอบแล้ว' };
+  var ACTION_LABEL = { SUBMIT: 'ส่ง', RECEIVE: 'รับเรื่อง', RETURN: 'ส่งกลับแก้ไข', COMPLETE: 'ปิดงาน', CANCEL: 'ยกเลิก', APPROVE: 'อนุมัติ', REJECT: 'ไม่อนุมัติ',
+                       OPEN: 'เปิดให้หน่วยงานประเมิน', CLOSE: 'ปิดรอบ' };
   /* ชื่อ Menu ตาม SYSTEM_BLUEPRINT ข้อ 1.1 — Menu 2–6 ยังไม่เปิดใช้ */
-  var MODULE_NAME = { M1: 'รายงานปัญหา', M2: 'สินค้าตัวอย่าง', M3: 'ประเมิน', M4: 'เบิกควบคุม', M5: 'จัดซื้อนอกแผน', M6: 'ยืนยันแผน' };
+  var MODULE_NAME = { M1: 'รายงานปัญหา', M2: 'ประเมินวัสดุ', M3: 'ประเมิน (รวมใน Menu 2)', M4: 'เบิกควบคุม', M5: 'จัดซื้อนอกแผน', M6: 'ยืนยันแผน' };
   function statusLabel(s) { return STATUS_LABEL[s] || s; }
   function actionLabel(a) { return ACTION_LABEL[a] || a; }
   function moduleLabel(m) { return m ? (MODULE_NAME[m] || m) : '-'; }
@@ -59,7 +60,10 @@
   var FIELD_MSG = { required: 'ต้องกรอก', invalid_email: 'รูปแบบอีเมลไม่ถูกต้อง', too_long: 'ยาวเกินไป', must_be_text: 'ต้องเป็นข้อความ', unknown_field: 'ช่องไม่ถูกต้อง',
                     bad_item: 'ค่าไม่ถูกต้อง', invalid_chars: 'มีตัวอักษรที่ไม่อนุญาต', too_small: 'น้อยเกินไป', too_large: 'มากเกินไป', must_be_integer: 'ต้องเป็นจำนวนเต็ม',
                     invalid_date: 'วันที่ไม่ถูกต้อง', type_not_allowed: 'ชนิดไฟล์ไม่รองรับ (รับ PDF, JPG, PNG)', type_mismatch: 'เนื้อไฟล์ไม่ตรงกับนามสกุล',
-                    bad_base64: 'อ่านไฟล์ไม่สำเร็จ', empty: 'ไฟล์ว่าง', too_many: 'แนบไฟล์ครบจำนวนสูงสุดแล้ว',
+                    bad_base64: 'อ่านไฟล์ไม่สำเร็จ', empty: 'ไฟล์ว่าง', too_many: 'เกินจำนวนที่กำหนด',
+                    past_date: 'วันที่ผ่านไปแล้ว', not_found: 'ไม่พบในรายการ', duplicate: 'ซ้ำ', invalid_qty: 'จำนวนไม่ถูกต้อง',
+                    not_allowed_value: 'ค่าไม่ถูกต้อง', count_mismatch: 'จำนวนข้อไม่ตรง กรุณาโหลดหน้าใหม่', all_skipped: 'ต้องให้คะแนนอย่างน้อย 1 ข้อ',
+                    invalid_score: 'คะแนนต้องเป็น 1–5', invalid: 'ไม่ถูกต้อง',
                     not_found: 'ไม่พบในรายการ (อาจถูกปิดใช้งาน)', invalid_phone: 'รูปแบบเบอร์โทรไม่ถูกต้อง', future_date: 'เป็นวันในอนาคตไม่ได้',
                     not_allowed_value: 'ค่าไม่ถูกต้อง', pick_from_list: 'เลือกจากรายการ', too_short: 'สั้นเกินไป' };
   function fieldText(code) { return FIELD_MSG[code] || 'ไม่ถูกต้อง'; }
@@ -77,7 +81,8 @@
   var stats = { busyRetries: 0 }, MAX_BUSY_RETRIES = 8;
   /* คำสั่งที่แก้ข้อมูลและกันบันทึกซ้ำด้วย request_id (สร้างครั้งเดียวต่อการกระทำ ใช้ซ้ำเมื่อลองใหม่) */
   var WRITE_ACTIONS = ['users.upsert', 'users.set_active', 'users.grant_role', 'users.revoke_role', 'workflow.transition', 'attachments.remove', 'config.docnumber.update',
-                       'm1.save', 'm1.followup.add', 'm1.review.save', 'spike.demo.clear', 'users.update_me', 'join.rotate', 'join.off'];
+                       'm1.save', 'm1.followup.add', 'm1.review.save', 'spike.demo.clear', 'users.update_me', 'join.rotate', 'join.off',
+                       'm2.save', 'm2.template.save', 'm2.response.submit', 'm2.response.reopen'];
   function newRequestId() {
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
   }
@@ -276,6 +281,11 @@
   var PAGES = [
     { path: '', label: 'หน้าหลัก', render: pageDashboard },
     { path: 'report', label: 'แจ้งปัญหา', roles: ['USER', 'OFFICER'], render: pageReportForm },
+    { path: 'eval', label: 'ประเมินวัสดุ', roles: ['USER', 'OFFICER'], render: pageEval },
+    { path: 'evalform', label: 'ใบประเมิน', nav: false, render: pageEvalForm },
+    { path: 'round', label: 'รอบประเมิน', nav: false, roles: ['OFFICER'], render: pageRoundEdit },
+    { path: 'evalprint', label: 'รายงานผลประเมิน', nav: false, roles: ['OFFICER'], render: pageEvalPrint },
+    { path: 'templates', label: 'แบบประเมิน', nav: false, roles: ['OFFICER'], render: pageTemplates },
     { path: 'documents', label: 'เอกสาร', render: pageDocuments },
     { path: 'print', label: 'พิมพ์', nav: false, render: pagePrint },
     { path: 'me', label: 'ข้อมูลของฉัน', nav: false, render: pageMe },
@@ -337,6 +347,14 @@
   function pageDashboard(view, args, alive) {
     var top = pageTitle(view, 'หน้าหลัก', 'สวัสดี ' + me.full_name);
     if (hasRole('USER') || hasRole('OFFICER')) add(top, add(el('div', null, 'actions'), el('a', '+ แจ้งปัญหาวัสดุ', 'btn', { href: '#/report' })));
+    // งานประเมินของหน่วยงานที่ยังไม่ส่ง — แสดงเฉพาะเมื่อมี (ไม่มี = ไม่รก)
+    var evalSlot = el('div'); view.appendChild(evalSlot);
+    if (me.department_id && (hasRole('USER') || hasRole('OFFICER'))) callApi('m2.tasks').then(function (r) {
+      if (!alive() || !r.ok) return;
+      var pending = r.data.filter(function (t) { return !t.submitted_at; });
+      if (!pending.length) return;
+      add(evalSlot, add(el('div', null, 'card eval-due'), el('h2', 'งานประเมินวัสดุรอส่ง ' + pending.length + ' รายการ'), m2TaskList(pending)));
+    });
     var box = loading(view);
     callApi('dashboard.summary').then(function (r) {
       if (!alive()) return; box.remove();
@@ -472,7 +490,7 @@
 
   function renderDetail(view, data, refresh) {
     var d = data.document, md = data.module_data;
-    var isM1 = d.module === 'M1' && !!md;
+    var isM1 = d.module === 'M1' && !!md, isM2 = d.module === 'M2' && !!md;
     var head = el('div', null, 'card doc-part');
     add(head, el('h1', d.title), add(el('div'), badge(d.status), el('span', ' ' + (d.doc_no || '(ยังไม่มีเลขที่)') + (d.revision ? ' · แก้ไขครั้งที่ ' + d.revision : ''), 'muted')));
     var kv = el('dl', null, 'kv');
@@ -490,8 +508,10 @@
 
     var acts = el('div', null, 'actions');
     if (isM1 && md.can_edit) acts.appendChild(el('a', 'แก้ไข', 'btn secondary', { href: '#/report/' + encodeURIComponent(d.id) }));
+    if (isM2 && md.can_edit) acts.appendChild(el('a', 'แก้ไขรอบ', 'btn secondary', { href: '#/round/' + encodeURIComponent(d.id) }));
     data.actions.forEach(function (a) {
       if (isM1 && a.action === 'COMPLETE') return;   // ปิดงานทำในกล่องงานพัสดุ (ต้องบันทึกผลก่อน)
+      if (isM2 && a.action === 'OPEN') return;       // เปิดรอบทำในหน้าแก้ไขรอบ (บันทึกก่อนแล้วเปิด)
       var b = el('button', actionLabel(a.action), a.action === 'CANCEL' || a.action === 'REJECT' ? 'danger' : (a.action === 'RETURN' ? 'secondary' : ''), { type: 'button' });
       b.addEventListener('click', function () { runAction(b, d, a, refresh); });
       acts.appendChild(b);
@@ -501,6 +521,7 @@
     if (isM1 && d.status === 'RETURNED' && md.can_edit) head.appendChild(el('div', 'พัสดุส่งกลับให้แก้ไข — ดูเหตุผลในประวัติด้านล่าง แก้แล้วกดส่งอีกครั้ง', 'notice'));
     view.appendChild(head);
 
+    if (isM2) m2RoundCards(view, d, md);
     if (isM1) {
       if (md.reply && d.status === 'COMPLETED') {
         var rc = el('div', null, 'card doc-part reply');
@@ -544,7 +565,8 @@
   }
 
   /* ถามความเห็น (ถ้าคำสั่งต้องมี) แล้วส่งคำสั่ง — แสดงผลสำเร็จเมื่อเซิร์ฟเวอร์ยืนยันเท่านั้น */
-  var CONFIRM_ACTION = { CANCEL: 'ยกเลิกเอกสารนี้? ยกเลิกแล้วย้อนกลับไม่ได้', SUBMIT: null };
+  var CONFIRM_ACTION = { CANCEL: 'ยกเลิกเอกสารนี้? ยกเลิกแล้วย้อนกลับไม่ได้', SUBMIT: null,
+                         CLOSE: 'ปิดรอบประเมิน? หน่วยงานที่ยังไม่ส่งจะส่งไม่ได้อีก' };
   function runAction(btn, doc, action, refresh) {
     if (CONFIRM_ACTION[action.action] && !window.confirm(CONFIRM_ACTION[action.action])) return;
     function send(comment) {
@@ -1158,6 +1180,473 @@
   }
 
   /* ---------- ผู้ใช้ (ADMIN) ---------- */
+  /* ================= Menu 2 ประเมินวัสดุ ================= */
+  var M2_REASON = { VENDOR_REQUEST: 'ผู้ขายขอวางประเมิน', PRODUCT_CHANGE: 'ประเมินก่อนเปลี่ยนผลิตภัณฑ์' };
+  var M2_SCALE = [[5, 'ดีมาก'], [4, 'ดี'], [3, 'ปานกลาง'], [2, 'พอใช้'], [1, 'ควรปรับปรุง']];
+  function n2(x) { return typeof x === 'number' ? x.toFixed(2) : '-'; }
+  function scoreText(s) { return s && s.n ? n2(s.pct) + '% · ' + s.band : '-'; }
+  function errLine(view, r) { add(view, add(el('div', null, 'card'), el('span', errText(r), 'fail'))); }
+
+  /** หน้าเมนู: หน่วยงานเห็นงานประเมินของตัวเอง · พัสดุเห็นรอบประเมิน + ปุ่มสร้าง */
+  function pageEval(view, args, alive) {
+    var top = pageTitle(view, 'ประเมินวัสดุ');
+    if (hasRole('OFFICER')) add(top, add(el('div', null, 'actions'), el('a', '+ สร้างรอบประเมิน', 'btn', { href: '#/round/new' }),
+                                      el('a', 'แบบประเมิน', 'btn secondary', { href: '#/templates' })));
+    var tasksCard = add(el('div', null, 'card'), el('h2', 'งานประเมินของหน่วยงาน')), tbox = el('div', 'กำลังโหลด...', 'muted');
+    tasksCard.appendChild(tbox); view.appendChild(tasksCard);
+    if (!me.department_id) { tbox.textContent = ''; add(tbox, document.createTextNode('ยังไม่ได้เลือกหน่วยงาน — '), el('a', 'เลือกที่ข้อมูลของฉัน', '', { href: '#/me' })); }
+    else callApi('m2.tasks').then(function (r) {
+      if (!alive()) return;
+      clear(tbox); tbox.className = '';
+      if (!r.ok) { add(tbox, el('span', errText(r), 'fail')); return; }
+      if (!r.data.length) { add(tbox, el('div', 'ไม่มีงานประเมินค้าง', 'muted')); return; }
+      tbox.appendChild(m2TaskList(r.data));
+    });
+    if (!hasRole('OFFICER')) return;
+    var rc = add(el('div', null, 'card'), el('h2', 'รอบประเมิน')), rbox = el('div', 'กำลังโหลด...', 'muted');
+    rc.appendChild(rbox); view.appendChild(rc);
+    callApi('documents.list', { module: 'M2', page_size: 50 }).then(function (r) {
+      if (!alive()) return;
+      clear(rbox); rbox.className = '';
+      if (!r.ok) { add(rbox, el('span', errText(r), 'fail')); return; }
+      if (!r.data.rows.length) { add(rbox, el('div', 'ยังไม่มีรอบประเมิน', 'muted')); return; }
+      rbox.appendChild(docTable(r.data.rows));
+    });
+  }
+
+  function m2TaskList(tasks) {
+    var ul = el('ul', null, 'tasklist');
+    tasks.forEach(function (t) {
+      var li = el('li'), a = el('a', null, 'task', { href: '#/evalform/' + encodeURIComponent(t.assignment_id) });
+      var state = t.submitted_at ? el('span', 'ส่งแล้ว', 'chip ok') : t.overdue ? el('span', 'เลยกำหนด', 'chip bad') : el('span', 'รอประเมิน', 'chip');
+      add(a, add(el('div', null, 'task-main'), el('b', t.item_name), el('span', ' · ' + (t.product_name || t.vendor_text || ''), 'muted')),
+          add(el('div', null, 'task-meta'), state, el('span', ' ภายใน ' + thaiDate(t.due_date), 'muted')));
+      ul.appendChild(add(li, a));
+    });
+    return ul;
+  }
+
+  /** ใบประเมินของหน่วยงาน (กดคะแนน 1–5 ต่อข้อ) · พัสดุเปิดได้เพื่อดู/บันทึกแทน */
+  function pageEvalForm(view, args, alive) {
+    var id = decodeURIComponent(args[0] || ''), box = loading(view);
+    callApi('m2.assignment.get', { assignment_id: id }).then(function (r) {
+      if (!alive()) return; box.remove();
+      if (!r.ok) { errLine(view, r); return; }
+      var g = r.data;
+      var head = add(el('div', null, 'card'), el('h1', 'แบบประเมิน ' + g.item_name), el('div', g.template_name || '', 'muted'));
+      var kv = el('dl', null, 'kv');
+      add(kv, el('dt', 'รหัสและชื่อวัสดุ'), el('dd', (g.item_code ? g.item_code + ' ' : '') + g.item_name),
+          el('dt', 'ชื่อผลิตภัณฑ์'), el('dd', g.product_name || '-'), el('dt', 'บริษัท'), el('dd', g.vendor_text || '-'),
+          el('dt', 'หน่วยงาน'), el('dd', g.department_name + (g.qty ? ' · ตัวอย่าง ' + g.qty : '')),
+          el('dt', 'กำหนดส่ง'), add(el('dd'), document.createTextNode(thaiDate(g.due_date) + ' '), !g.response && g.due_date && g.due_date < g.today ? el('span', 'เลยกำหนด', 'chip bad') : null));
+      add(head, kv, el('div', null, 'actions'));
+      head.lastChild.appendChild(el('a', '← ประเมินวัสดุ', '', { href: '#/eval' }));
+      view.appendChild(head);
+      if (g.response) { view.appendChild(m2ResponseCard(g)); return; }
+      if (!g.can_submit) { view.appendChild(el('div', g.status === 'OPEN' ? 'ยังส่งใบนี้ไม่ได้' : 'รอบนี้ปิดแล้ว', 'card notice')); return; }
+      view.appendChild(m2ScoreForm(g, function () { route(); }));
+    });
+  }
+
+  function m2ResponseCard(g) {
+    var x = g.response, c = add(el('div', null, 'card reply'), el('h2', 'ผลประเมินที่ส่งแล้ว'));
+    var t = el('table'), tb = el('tbody');
+    add(t, add(el('thead'), add(el('tr'), el('th', 'หัวข้อ'), el('th', 'คะแนน'))));
+    g.criteria.forEach(function (q, i) {
+      var s = x.scores[i], lab = typeof s === 'number' ? s + ' · ' + M2_SCALE[5 - s][1] : 'ไม่ได้ใช้';
+      add(tb, add(el('tr'), el('td', (i + 1) + '. ' + q), el('td', lab)));
+    });
+    add(t, tb);
+    add(c, add(el('div', null, 'scroll'), t),
+        el('p', 'รวม ' + x.score.sum + ' คะแนน จาก ' + x.score.n + ' ข้อ · เฉลี่ย ' + n2(x.score.avg) + ' · ร้อยละ ' + n2(x.score.pct) + ' · ' + x.score.band, 'score-line'),
+        x.verdict ? el('p', x.verdict === 'USE' ? 'สรุป: ควรนำมาใช้' : 'สรุป: ไม่เหมาะสม — ' + (x.verdict_reason || '')) : null,
+        x.suggestion ? add(el('div'), el('b', 'ข้อเสนอแนะ'), el('div', x.suggestion, 'pre')) : null,
+        el('div', 'ผู้ประเมิน ' + x.evaluator_name + ' · ' + x.evaluator_position + ' · ส่งเมื่อ ' + fmtDate(x.submitted_at) + (x.on_behalf ? ' (พัสดุบันทึกแทน)' : ''), 'muted'));
+    if (hasRole('OFFICER') && g.status === 'OPEN') {
+      var re = el('button', 'ให้หน่วยงานส่งใหม่', 'secondary', { type: 'button' });
+      re.addEventListener('click', function () {
+        askComment('เหตุผลที่ให้ส่งใหม่', function (text) {
+          return callApi('m2.response.reopen', { response_id: x.id, comment: text }).then(function (r) {
+            if (!r.ok) { reportFail(r); return false; }
+            toast('เปิดให้ส่งใหม่แล้ว'); route(); return true;
+          });
+        });
+      });
+      add(c, add(el('div', null, 'actions'), re));
+    }
+    return c;
+  }
+
+  function m2ScoreForm(g, done) {
+    var key = 'm2form:' + g.assignment_id, saved = storeGet(key) || {};
+    var form = el('form', null, 'card scoreform', { novalidate: 'novalidate', autocomplete: 'off' }), picks = saved.picks || {}, errs = [];
+    var summary = el('p', null, 'score-line', { 'aria-live': 'polite' });
+    function persist() { storeSet(key, { picks: picks, suggestion: sug.value, verdict: verdict(), reason: why.value, name: nm.value, pos: ps.value }); }
+    function current() {
+      var vals = g.criteria.map(function (q, i) { return picks[i] === 'na' ? null : (typeof picks[i] === 'number' ? picks[i] : undefined); });
+      var nums = vals.filter(function (v) { return typeof v === 'number'; }), sum = nums.reduce(function (a, b) { return a + b; }, 0);
+      var answered = vals.filter(function (v) { return v !== undefined; }).length;
+      summary.textContent = 'ตอบแล้ว ' + answered + '/' + g.criteria.length + ' ข้อ' + (nums.length ? ' · เฉลี่ย ' + (Math.round(sum / nums.length * 100 + 1e-9) / 100).toFixed(2) : '');
+      return vals;
+    }
+    if (g.on_behalf) form.appendChild(el('div', 'คุณกำลังบันทึกแทนหน่วยงาน ' + g.department_name + ' — กรอกชื่อผู้ประเมินตามใบที่ได้รับ', 'notice'));
+    g.criteria.forEach(function (q, i) {
+      var fs = el('fieldset', null, 'crit'), lg = el('legend', (i + 1) + '. ' + q), row = el('div', null, 'scale'), er = el('div', null, 'ferr');
+      errs.push(er);
+      M2_SCALE.concat([['na', 'ไม่ได้ใช้']]).forEach(function (opt) {
+        var lab = el('label', null, 'pick' + (opt[0] === 'na' ? ' na' : '')), inp = el('input', null, '', { type: 'radio', name: 'c' + i, value: String(opt[0]) });
+        if (picks[i] === opt[0]) inp.checked = true;
+        inp.addEventListener('change', function () { picks[i] = opt[0]; er.textContent = ''; current(); persist(); });
+        add(lab, inp, el('span', opt[0] === 'na' ? opt[1] : opt[0] + ' ' + opt[1]));
+        row.appendChild(lab);
+      });
+      add(fs, lg, row, er); form.appendChild(fs);
+    });
+    var sug = el('textarea', null, '', { maxlength: '3000', rows: '3', id: 'm2-sug' }); sug.value = saved.suggestion || '';
+    var vUse = el('input', null, '', { type: 'radio', name: 'verdict', value: 'USE' }), vNo = el('input', null, '', { type: 'radio', name: 'verdict', value: 'NOT_USE' });
+    if (saved.verdict === 'USE') vUse.checked = true; if (saved.verdict === 'NOT_USE') vNo.checked = true;
+    var why = el('textarea', null, '', { maxlength: '1000', rows: '2', id: 'm2-why', placeholder: 'เหตุผลที่ไม่เหมาะสม' }); why.value = saved.reason || '';
+    var whyErr = el('div', null, 'ferr'), whyBox = add(el('div'), why, whyErr);
+    function verdict() { return vUse.checked ? 'USE' : vNo.checked ? 'NOT_USE' : null; }
+    function showWhy() { whyBox.classList.toggle('hidden', !vNo.checked); }
+    [vUse, vNo].forEach(function (v) { v.addEventListener('change', function () { showWhy(); persist(); }); });
+    [sug, why].forEach(function (t) { t.addEventListener('input', persist); });
+    var nm = el('input', null, '', { type: 'text', maxlength: '200', id: 'm2-name' }), ps = el('input', null, '', { type: 'text', maxlength: '200', id: 'm2-pos', list: 'dl-m2-pos' });
+    nm.value = saved.name || (g.on_behalf ? '' : me.full_name || ''); ps.value = saved.pos || (g.on_behalf ? '' : me.position || '');
+    var nmErr = el('div', null, 'ferr'), psErr = el('div', null, 'ferr');
+    [nm, ps].forEach(function (t) { t.addEventListener('input', function () { persist(); nmErr.textContent = ''; psErr.textContent = ''; }); });
+    add(form, add(el('div', null, 'f'), el('label', 'ข้อเสนอแนะ (ถ้ามี)', '', { for: 'm2-sug' }), sug),
+        add(el('fieldset', null, 'crit'), el('legend', 'สรุป (ถ้ามี)'), add(el('div', null, 'scale'),
+            add(el('label', null, 'pick wide'), vUse, el('span', 'ควรนำมาใช้')), add(el('label', null, 'pick wide'), vNo, el('span', 'ไม่เหมาะสม'))), whyBox),
+        add(el('div', null, 'row'), add(el('div'), el('label', 'ผู้ประเมิน', '', { for: 'm2-name' }), nm, nmErr), add(el('div'), el('label', 'ตำแหน่ง', '', { for: 'm2-pos' }), ps, psErr)),
+        dataList('dl-m2-pos', POSITIONS), summary);
+    var send = el('button', 'ส่งผลประเมิน', '', { type: 'submit' }), rid = null, sig = null;
+    add(form, add(el('div', null, 'actions'), send));
+    showWhy(); current();
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var vals = current(), first = -1;
+      vals.forEach(function (v, i) { errs[i].textContent = v === undefined ? 'ยังไม่ได้เลือก' : ''; if (v === undefined && first < 0) first = i; });
+      if (first < 0 && !vals.some(function (v) { return typeof v === 'number'; })) { errs[0].textContent = 'ต้องให้คะแนนอย่างน้อย 1 ข้อ'; first = 0; }
+      whyErr.textContent = vNo.checked && !why.value.trim() ? 'ต้องกรอก' : '';
+      nmErr.textContent = nm.value.trim() ? '' : 'ต้องกรอก'; psErr.textContent = ps.value.trim() ? '' : 'ต้องกรอก';
+      if (first >= 0) { form.querySelectorAll('fieldset.crit')[first].scrollIntoView({ block: 'center' }); return; }
+      if (whyErr.textContent || nmErr.textContent || psErr.textContent) return;
+      if (!window.confirm('ส่งผลประเมิน? ส่งแล้วแก้เองไม่ได้ (ถ้าผิด แจ้งพัสดุให้เปิดส่งใหม่)')) return;
+      var payload = { assignment_id: g.assignment_id, scores: vals, suggestion: sug.value.trim(), verdict: verdict(),
+                      verdict_reason: vNo.checked ? why.value.trim() : '', evaluator_name: nm.value.trim(), evaluator_position: ps.value.trim() };
+      var s = JSON.stringify(payload); if (s !== sig) { sig = s; rid = newRequestId(); }   // กดซ้ำหลังเน็ตหลุด = คำขอเดิม
+      guard(send, function () {
+        return callApi('m2.response.submit', payload, { requestId: rid }).then(function (r) {
+          if (!r.ok) { reportFail(r); return; }
+          storeDel(key); toast('ส่งผลประเมินแล้ว'); done();
+        });
+      });
+    });
+    return form;
+  }
+
+  /** สร้าง/แก้รอบประเมิน (พัสดุ) — ร่าง: แก้ได้ทุกอย่าง · เปิดแล้ว: เลื่อนกำหนดส่ง/หมายเหตุได้เท่านั้น */
+  function pageRoundEdit(view, args, alive) {
+    var docId = args[0] && args[0] !== 'new' ? decodeURIComponent(args[0]) : null;
+    pageTitle(view, docId ? 'แก้ไขรอบประเมิน' : 'สร้างรอบประเมิน', 'รายการละไม่เกิน 5 หน่วยงาน');
+    var box = loading(view);
+    var loads = [callApi('m2.template.list'), loadMaster('departments'), loadMaster('items'), loadMaster('vendors')];
+    if (docId) loads.push(callApi('documents.get', { id: docId }));
+    Promise.all(loads).then(function (res) {
+      if (!alive()) return; box.remove();
+      var bad = res.filter(function (r) { return !r.ok; })[0]; if (bad) { errLine(view, bad); return; }
+      roundForm(view, res[0].data, res[1].data.rows.filter(function (x) { return x.is_active !== false; }), res[2].data.rows, res[3].data.rows, docId ? res[4].data : null);
+    });
+  }
+
+  function roundForm(view, templates, depts, items, vendors, data) {
+    var md = data ? data.module_data : null, d = data ? data.document : null, locked = !!(d && d.status !== 'DRAFT');
+    var deptByName = {}, deptName = {}, itemByLabel = {}, itemById = {}, vendorByName = {}, tplById = {};
+    depts.forEach(function (x) { deptByName[x.name] = x; deptName[x.id] = x.name; });
+    function itemLabel(it) { return it.name + ' · ' + it.code; }
+    items.forEach(function (it) { itemByLabel[itemLabel(it)] = it; itemById[it.id] = it; });
+    vendors.forEach(function (v) { vendorByName[v.name] = v; });
+    templates.forEach(function (t) { tplById[t.id] = t; });
+    var form = el('form', null, 'card m1form roundform', { novalidate: 'novalidate', autocomplete: 'off' }), fieldErr = {};
+    function errBox(k) { return (fieldErr[k] = el('div', null, 'ferr')); }
+    var due = el('input', null, '', { type: 'date', id: 'r-due', min: todayYmd() }); due.value = md ? md.due_date || '' : '';
+    var note = el('textarea', null, '', { rows: '2', maxlength: '1000', id: 'r-note' }); note.value = md ? md.note || '' : '';
+    add(form, add(el('div', null, 'row'), add(el('div'), el('label', 'กำหนดส่งผลประเมิน *', '', { for: 'r-due' }), due, errBox('due_date')),
+                   add(el('div'), el('label', 'หมายเหตุ', '', { for: 'r-note' }), note)),
+        dataList('dl-r-item', items.map(itemLabel)), dataList('dl-r-vendor', vendors.map(function (v) { return v.name; })),
+        dataList('dl-r-dept', depts.map(function (x) { return x.name; })));
+    var list = el('div'), cards = [];
+    form.appendChild(list);
+
+    function itemCard(src) {
+      var c = { units: [] }, card = el('fieldset', null, 'sec itemcard');
+      c.id = src ? src.id : null;
+      var legend = el('legend', ''); card.appendChild(legend);
+      c.item = el('input', null, '', { type: 'text', list: 'dl-r-item', maxlength: '300', placeholder: 'พิมพ์ชื่อหรือรหัสแล้วเลือก (ไม่มีในรายการ พิมพ์เองได้)' });
+      c.vendor = el('input', null, '', { type: 'text', list: 'dl-r-vendor', maxlength: '300' });
+      c.product = el('input', null, '', { type: 'text', maxlength: '300' });
+      c.reason = el('select'); Object.keys(M2_REASON).forEach(function (k) { var o = el('option', M2_REASON[k]); o.value = k; c.reason.appendChild(o); });
+      c.tpl = el('select'); var o0 = el('option', '— เลือกแบบประเมิน —'); o0.value = ''; c.tpl.appendChild(o0);
+      templates.forEach(function (t) { var o = el('option', t.name + ' (' + t.criteria.length + ' ข้อ)'); o.value = t.id; c.tpl.appendChild(o); });
+      c.fda = el('input', null, '', { type: 'checkbox' });
+      if (src) {
+        var it = src.item_id ? itemById[src.item_id] : null;
+        c.item.value = it && it.name === src.item_name ? itemLabel(it) : src.item_name;
+        c.vendor.value = src.vendor_text || ''; c.product.value = src.product_name || ''; c.reason.value = src.reason; c.tpl.value = src.template_id; c.fda.checked = !!src.fda_ok;
+      }
+      c.item.addEventListener('change', function () {   // เลือกวัสดุที่มีแบบประเมินเฉพาะ → เลือกแบบให้เอง (ยังเปลี่ยนได้)
+        var it = itemByLabel[c.item.value.trim()]; if (!it || c.tpl.value) return;
+        var t = templates.filter(function (x) { return x.item_code && x.item_code === it.code; })[0]; if (t) c.tpl.value = t.id;
+      });
+      var unitsBox = el('div', null, 'units'), addUnit = el('button', '+ เพิ่มหน่วยงาน', 'secondary small', { type: 'button' });
+      function unitRow(u) {
+        var r = { dept: el('input', null, '', { type: 'text', list: 'dl-r-dept', maxlength: '200', placeholder: 'หน่วยงาน', 'aria-label': 'หน่วยงาน' }),
+                  qty: el('input', null, '', { type: 'number', min: '0', step: '1', placeholder: 'จำนวน', 'aria-label': 'จำนวนตัวอย่าง' }) };
+        if (u) { r.dept.value = deptName[u.department_id] || u.department_name || ''; r.qty.value = u.qty === null || u.qty === undefined ? '' : String(u.qty); }
+        var rm = el('button', 'เอาออก', 'danger small', { type: 'button' }), row = el('div', null, 'unitrow');
+        r.err = el('div', null, 'ferr');
+        rm.addEventListener('click', function () { c.units.splice(c.units.indexOf(r), 1); row.remove(); addUnit.disabled = c.units.length >= 5; });
+        add(row, r.dept, r.qty, locked ? null : rm, r.err); unitsBox.appendChild(row); c.units.push(r);
+        addUnit.disabled = c.units.length >= 5;
+      }
+      addUnit.addEventListener('click', function () { if (c.units.length < 5) unitRow(null); });
+      (src ? src.units : [null]).forEach(unitRow);
+      var rmItem = el('button', 'เอารายการนี้ออก', 'danger small', { type: 'button' });
+      rmItem.addEventListener('click', function () { if (!window.confirm('เอารายการนี้ออก?')) return; cards.splice(cards.indexOf(c), 1); card.remove(); renumber(); });
+      c.errs = {};
+      function f(label, input, key, req) { c.errs[key] = el('div', null, 'ferr'); return add(el('div', null, 'f'), add(el('label', label + (req ? ' *' : '')), input), c.errs[key]); }
+      add(card, f('วัสดุ', c.item, 'item_name', true), add(el('div', null, 'row'), f('บริษัท', c.vendor, 'vendor_text', true), f('ชื่อผลิตภัณฑ์/ยี่ห้อ', c.product, 'product_name')),
+          add(el('div', null, 'row'), f('เหตุที่ประเมิน', c.reason, 'reason', true), f('แบบประเมิน', c.tpl, 'template_id', true)),
+          add(el('label', null, 'check'), c.fda, document.createTextNode(' ตรวจเอกสาร อย. ของตัวอย่างแล้ว')),
+          el('div', 'หน่วยงานทดลองใช้ (ไม่เกิน 5) และจำนวนตัวอย่าง', 'lbl-sm'), unitsBox, c.errs.units = el('div', null, 'ferr'),
+          locked ? null : add(el('div', null, 'actions'), addUnit, rmItem));
+      if (locked) [c.item, c.vendor, c.product, c.reason, c.tpl, c.fda].concat([].concat.apply([], c.units.map(function (u) { return [u.dept, u.qty]; }))).forEach(function (x) { x.disabled = true; });
+      c.card = card; c.legend = legend;
+      list.appendChild(card); cards.push(c); renumber();
+    }
+    function renumber() { cards.forEach(function (c, i) { c.legend.textContent = 'รายการที่ ' + (i + 1); }); }
+    (md && md.items.length ? md.items : [null]).forEach(itemCard);
+    var addItem = el('button', '+ เพิ่มรายการ', 'secondary', { type: 'button' });
+    addItem.addEventListener('click', function () { itemCard(null); cards[cards.length - 1].item.focus(); });
+    if (!locked) form.appendChild(add(el('div', null, 'actions'), addItem));
+    if (locked) form.appendChild(el('div', 'รอบนี้เปิดให้หน่วยงานประเมินแล้ว — แก้ได้เฉพาะกำหนดส่งและหมายเหตุ', 'notice'));
+
+    var save = el('button', locked ? 'บันทึก' : 'บันทึกร่าง', locked ? '' : 'secondary', { type: 'button' }), open = el('button', 'บันทึกและเปิดให้หน่วยงานประเมิน', '', { type: 'button' });
+    var cancelLink = el('a', 'ยกเลิก', '', { href: d ? '#/documents/' + encodeURIComponent(d.id) : '#/eval' });
+    form.appendChild(add(el('div', null, 'actions'), locked ? null : open, save, cancelLink));
+    form.addEventListener('submit', function (ev) { ev.preventDefault(); });
+    view.appendChild(form);
+
+    var st = { docId: d ? d.id : null, version: d ? d.version : null, rid: null, sig: null };
+    function payload() {
+      var p = { due_date: due.value || '', note: note.value.trim() };
+      if (st.docId) { p.document_id = st.docId; p.version = st.version; }
+      if (!locked) p.items = cards.map(function (c) {
+        var it = itemByLabel[c.item.value.trim()], v = vendorByName[c.vendor.value.trim()];
+        return { id: c.id || undefined, item_id: it ? it.id : '', item_name: it ? it.name : c.item.value.trim(), vendor_id: v ? v.id : '', vendor_text: c.vendor.value.trim(),
+                 product_name: c.product.value.trim(), reason: c.reason.value, template_id: c.tpl.value, fda_ok: c.fda.checked,
+                 units: c.units.map(function (u) { var dd = deptByName[u.dept.value.trim()]; return { department_id: dd ? dd.id : (u.dept.value.trim() ? '?' + u.dept.value.trim() : ''), qty: u.qty.value === '' ? null : Number(u.qty.value) }; }) };
+      });
+      return p;
+    }
+    function clearErrs() {
+      Object.keys(fieldErr).forEach(function (k) { fieldErr[k].textContent = ''; });
+      cards.forEach(function (c) { Object.keys(c.errs).forEach(function (k) { c.errs[k].textContent = ''; }); c.units.forEach(function (u) { u.err.textContent = ''; }); });
+    }
+    function showErrs(fields) {
+      Object.keys(fields || {}).forEach(function (k) {
+        var m = /^items\.(\d+)(?:\.(\w+))?(?:\.(\d+))?$/.exec(k), text = fieldText(fields[k]);
+        if (!m) { if (fieldErr[k]) fieldErr[k].textContent = text; return; }
+        var c = cards[+m[1]]; if (!c) return;
+        if (m[2] === 'units' && m[3] !== undefined) { var u = c.units[+m[3]]; if (u) u.err.textContent = text; }
+        else if (c.errs[m[2]]) c.errs[m[2]].textContent = text;
+        else if (m[2] === 'item_id') c.errs.item_name.textContent = text;
+        else if (m[2] === 'vendor_id') c.errs.vendor_text.textContent = text;
+      });
+      var first = form.querySelector('.ferr:not(:empty)'); if (first) first.scrollIntoView({ block: 'center' });
+    }
+    function localCheck(p) {
+      var e = {};
+      if (!p.due_date) e.due_date = 'required';
+      (p.items || []).forEach(function (it, i) {
+        if (!it.item_name) e['items.' + i + '.item_name'] = 'required';
+        if (!it.vendor_text) e['items.' + i + '.vendor_text'] = 'required';
+        if (!it.template_id) e['items.' + i + '.template_id'] = 'required';
+        if (!it.units.length) e['items.' + i + '.units'] = 'required';
+        it.units.forEach(function (u, j) { if (!u.department_id) e['items.' + i + '.units.' + j] = 'required'; else if (u.department_id.charAt(0) === '?') e['items.' + i + '.units.' + j] = 'pick_from_list'; });
+      });
+      return e;
+    }
+    function doSave(thenOpen) {
+      clearErrs();
+      var p = payload(), e = localCheck(p);
+      if (Object.keys(e).length) { showErrs(e); return Promise.resolve(); }
+      p.items && p.items.forEach(function (it) { if (!it.id) delete it.id; });
+      var s = JSON.stringify(p); if (s !== st.sig) { st.sig = s; st.rid = newRequestId(); }
+      return callApi('m2.save', p, { requestId: st.rid }).then(function (r) {
+        if (!r.ok) { if (r.fields) showErrs(r.fields); reportFail(r); return; }
+        st.docId = r.data.document_id; st.version = r.data.doc_version; st.sig = null;
+        if (!thenOpen) { toast('บันทึกแล้ว'); location.hash = '#/documents/' + encodeURIComponent(st.docId); return; }
+        return callApi('workflow.transition', { document_id: st.docId, action: 'OPEN', version: st.version }).then(function (t) {
+          if (!t.ok) { if (t.fields) showErrs(t.fields); reportFail(t); location.hash = '#/round/' + encodeURIComponent(st.docId); return; }
+          toast('เปิดให้หน่วยงานประเมินแล้ว · ' + t.data.document.doc_no);
+          location.hash = '#/documents/' + encodeURIComponent(st.docId);
+        });
+      });
+    }
+    save.addEventListener('click', function () { guard(save, function () { return doSave(false); }); });
+    open.addEventListener('click', function () {
+      if (!window.confirm('เปิดให้หน่วยงานประเมิน? หลังเปิดแก้รายการ/หน่วยงานไม่ได้ (เลื่อนกำหนดส่งได้)')) return;
+      guard(open, function () { return doSave(true); });
+    });
+  }
+
+  /** รายละเอียดรอบ (ในหน้าเอกสาร) สำหรับพัสดุ: ความคืบหน้า · ผลรายหน่วยงาน · ผลรวม · พิมพ์รายงาน */
+  function m2RoundCards(view, d, md) {
+    var sum = add(el('div', null, 'card doc-part'), el('h2', 'ความคืบหน้า'));
+    var kv = el('dl', null, 'kv');
+    add(kv, el('dt', 'กำหนดส่ง'), el('dd', thaiDate(md.due_date) || '-'), el('dt', 'ส่งผลแล้ว'), el('dd', md.sent + ' จาก ' + md.total + ' หน่วยงาน'));
+    if (md.note) add(kv, el('dt', 'หมายเหตุ'), el('dd', md.note));
+    sum.appendChild(kv);
+    if (md.total) { var bar = el('div', null, 'bar'), fill = el('i'); fill.style.width = Math.round(md.sent / md.total * 100) + '%'; bar.appendChild(fill); sum.appendChild(bar); }
+    if (md.can_edit_due) sum.appendChild(add(el('div', null, 'actions'), el('a', md.can_edit ? 'แก้ไขรอบ' : 'เลื่อนกำหนดส่ง', 'btn secondary', { href: '#/round/' + encodeURIComponent(d.id) })));
+    view.appendChild(sum);
+    md.items.forEach(function (it, i) {
+      var c = add(el('div', null, 'card doc-part'), el('h2', (i + 1) + '. ' + it.item_name + (it.item_code ? ' · ' + it.item_code : '')),
+                  el('div', [it.product_name, it.vendor_text, M2_REASON[it.reason], 'แบบ: ' + it.template_name].filter(Boolean).join(' · '), 'muted'));
+      if (!it.fda_ok) c.appendChild(el('div', 'ยังไม่ได้ยืนยันเอกสาร อย. ของตัวอย่าง', 'note-warn'));
+      var t = el('table', null, 'stack'), heads = ['หน่วยงาน', 'จำนวน', 'ผล', ''], hr = el('tr');
+      heads.forEach(function (h) { hr.appendChild(el('th', h)); }); add(t, add(el('thead'), hr));
+      var tb = el('tbody');
+      it.units.forEach(function (u) {
+        var res = u.response ? add(el('td'), el('b', scoreText(u.response.score)), el('div', fmtDate(u.response.submitted_at) + (u.response.on_behalf ? ' · พัสดุบันทึกแทน' : ''), 'muted'))
+          : add(el('td'), u.overdue ? el('span', 'เลยกำหนด', 'chip bad') : el('span', d.status === 'OPEN' ? 'รอผล' : 'ไม่ส่ง', 'chip'));
+        var link = (u.response || d.status === 'OPEN') ? el('a', u.response ? 'ดูใบ' : 'บันทึกแทน', '', { href: '#/evalform/' + encodeURIComponent(u.assignment_id) }) : null;
+        var tr = add(el('tr'), el('td', u.department_name), el('td', u.qty === null ? '-' : String(u.qty)), res, add(el('td'), link));
+        [].forEach.call(tr.children, function (td, k) { if (heads[k]) td.setAttribute('data-label', heads[k]); });
+        tb.appendChild(tr);
+      });
+      add(t, tb); c.appendChild(add(el('div', null, 'scroll'), t));
+      c.appendChild(el('p', it.overall.units ? 'ผลรวม (เฉลี่ยร้อยละ ' + it.overall.units + ' หน่วยงาน): ' + n2(it.overall.pct) + '% · ' + it.overall.band : 'ยังไม่มีผล', 'score-line'));
+      if (d.doc_no && d.status !== 'CANCELLED') c.appendChild(add(el('div', null, 'actions'), el('a', 'พิมพ์รายงานผล / PDF', 'btn secondary', { href: '#/evalprint/' + encodeURIComponent(d.id) + '/' + encodeURIComponent(it.id) })));
+      view.appendChild(c);
+    });
+    view.appendChild(el('div', md.note_legal, 'muted card'));
+  }
+
+  /** รายงานผลการประเมิน (แยกรายการ = แยกรายบริษัท ส่งให้บริษัทนั้นเท่านั้น) */
+  function pageEvalPrint(view, args, alive) {
+    var id = decodeURIComponent(args[0] || ''), itemId = decodeURIComponent(args[1] || ''), box = loading(view);
+    callApi('documents.get', { id: id }).then(function (r) {
+      if (!alive()) return; box.remove();
+      if (!r.ok) { errLine(view, r); return; }
+      var d = r.data.document, md = r.data.module_data, it = md && md.items ? md.items.filter(function (x) { return x.id === itemId; })[0] : null;
+      var bar = add(el('div', null, 'card no-print actions'), el('a', '← กลับ', '', { href: '#/documents/' + encodeURIComponent(d.id) }));
+      if (d.module !== 'M2' || !it || !d.doc_no || d.status === 'CANCELLED') { add(bar, el('span', 'ไม่มีรายงานให้พิมพ์', 'muted')); view.appendChild(bar); return; }
+      var pr = el('button', 'พิมพ์ / บันทึกเป็น PDF', '', { type: 'button' }); pr.addEventListener('click', function () { window.print(); });
+      add(bar, pr, d.status === 'OPEN' ? el('span', 'รอบยังไม่ปิด — ผลอาจเปลี่ยน', 'muted') : null);
+      view.appendChild(bar);
+      view.appendChild(m2Paper(d, md, it));
+    });
+  }
+
+  function m2Paper(d, md, it) {
+    var paper = el('article', null, 'paper evalpaper', { 'aria-label': 'รายงานผลการประเมินสำหรับพิมพ์' });
+    function line(label, value) { return add(el('p', null, 'p-line'), document.createTextNode(label + ' '), el('span', value || '-', 'fill grow')); }
+    add(paper, el('h1', 'รายงานผลการประเมินวัสดุการแพทย์', 'p-title'), el('p', 'โรงพยาบาลอุดรธานี กลุ่มงานพัสดุ งานวัสดุการแพทย์ทั่วไป', 'p-center'),
+        line('เลขที่รอบ', thaiDigits(d.doc_no)), line('รหัสและชื่อวัสดุ', (it.item_code ? thaiDigits(it.item_code) + ' ' : '') + it.item_name),
+        line('ชื่อผลิตภัณฑ์', it.product_name), line('บริษัท', it.vendor_text), line('เหตุที่ประเมิน', M2_REASON[it.reason]),
+        line('ช่วงประเมิน', (md.opened_at ? thaiDate(md.opened_at, false, true) : '') + ' ถึง ' + thaiDate(md.due_date, false, true)));
+    var t = el('table', null, 'ptable'), heads = ['ลำดับ', 'หน่วยงาน', 'จำนวนข้อ', 'คะแนนรวม', 'เฉลี่ย', 'ร้อยละ', 'ระดับ', 'สรุป'];
+    add(t, add(el('thead'), heads.reduce(function (tr, h) { tr.appendChild(el('th', h)); return tr; }, el('tr'))));
+    var tb = el('tbody');
+    it.units.forEach(function (u, i) {
+      var s = u.response ? u.response.score : null, tr = el('tr');
+      add(tr, el('td', thaiDigits(i + 1)), el('td', u.department_name));
+      if (s && s.n) add(tr, el('td', thaiDigits(s.n)), el('td', thaiDigits(s.sum)), el('td', thaiDigits(n2(s.avg))), el('td', thaiDigits(n2(s.pct))), el('td', s.band),
+                        el('td', u.response.verdict === 'USE' ? 'ควรนำมาใช้' : u.response.verdict === 'NOT_USE' ? 'ไม่เหมาะสม' : '-'));
+      else { var td = el('td', 'ไม่ส่งผล'); td.setAttribute('colspan', '6'); tr.appendChild(td); }
+      tb.appendChild(tr);
+    });
+    add(t, tb); paper.appendChild(t);
+    var o = it.overall;
+    paper.appendChild(el('p', o.units ? 'ผลรวม (เฉลี่ยร้อยละของ ' + thaiDigits(o.units) + ' หน่วยงาน น้ำหนักเท่ากัน): ร้อยละ ' + thaiDigits(n2(o.pct)) + ' · ค่าเฉลี่ยเทียบเท่า ' + thaiDigits(n2(o.avg)) + ' · ระดับ ' + o.band
+                                    : 'ยังไม่มีหน่วยงานส่งผล', 'p-sum'));
+    var sent = it.units.filter(function (u) { return u.response; }).length;
+    paper.appendChild(el('p', 'ส่งผล ' + thaiDigits(sent) + ' จาก ' + thaiDigits(it.units.length) + ' หน่วยงาน · กำหนดส่ง ' + thaiDate(md.due_date, false, true)));
+    // คะแนนเฉลี่ยรายข้อ (จากหน่วยงานที่ส่ง) — ให้บริษัทรู้ว่าต้องปรับข้อไหน
+    var ct = el('table', null, 'ptable'), cb = el('tbody');
+    add(ct, add(el('thead'), add(el('tr'), el('th', 'ข้อ'), el('th', 'หัวข้อประเมิน'), el('th', 'เฉลี่ย'))));
+    it.criteria.forEach(function (q, i) {
+      var v = it.units.map(function (u) { return u.response ? u.response.scores[i] : null; }).filter(function (x) { return typeof x === 'number'; });
+      var avg = v.length ? Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length * 100 + 1e-9) / 100 : null;
+      add(cb, add(el('tr'), el('td', thaiDigits(i + 1)), el('td', q), el('td', avg === null ? '-' : thaiDigits(avg.toFixed(2)))));
+    });
+    add(ct, cb); paper.appendChild(ct);
+    var notes = [];
+    it.units.forEach(function (u) {
+      if (!u.response) return;
+      if (u.response.suggestion) notes.push(u.department_name + ': ' + u.response.suggestion);
+      if (u.response.verdict === 'NOT_USE' && u.response.verdict_reason) notes.push(u.department_name + ' (ไม่เหมาะสม): ' + u.response.verdict_reason);
+    });
+    if (notes.length) { paper.appendChild(el('p', 'ข้อเสนอแนะจากหน่วยงาน', 'p-h')); var ul = el('ul', null, 'p-notes'); notes.forEach(function (n) { ul.appendChild(el('li', n)); }); paper.appendChild(ul); }
+    paper.appendChild(el('p', 'เกณฑ์: ๔.๒๑–๕.๐๐ ดีมาก · ๓.๔๑–๔.๒๐ ดี · ๒.๖๑–๓.๔๐ ปานกลาง · ๑.๘๑–๒.๖๐ พอใช้ · ๑.๐๐–๑.๘๐ ควรปรับปรุง (ร้อยละ = คะแนนรวม ÷ (๕ × จำนวนข้อ) × ๑๐๐)', 'p-crit'));
+    paper.appendChild(el('p', 'หมายเหตุ : ' + md.note_legal, 'p-note'));
+    function sig(role) { var s = el('div', null, 'sig'); add(s, el('div', 'ลงชื่อ ' + '.'.repeat(30)), el('div', '( ' + '.'.repeat(28) + ' )'), el('div', role, 'role')); return s; }
+    paper.appendChild(add(el('div', null, 'sigs'), sig('ผู้จัดทำ'), sig('ผู้ตรวจสอบ'), sig('ผู้อำนวยการโรงพยาบาลอุดรธานี')));
+    paper.appendChild(el('p', 'พิมพ์จากระบบเอกสารงานวัสดุการแพทย์ · ' + thaiDigits(d.doc_no) + (d.status === 'OPEN' ? ' · รอบยังไม่ปิด' : ''), 'p-sys'));
+    return paper;
+  }
+
+  /** แบบประเมิน (พัสดุ): สร้าง/แก้ข้อคำถาม · แก้แล้วไม่กระทบรอบที่บันทึกไปแล้ว */
+  function pageTemplates(view, args, alive) {
+    pageTitle(view, 'แบบประเมิน', 'ใช้ตามชนิดวัสดุ ไม่ใช่ตามยี่ห้อ · แก้แล้วไม่กระทบรอบที่บันทึกไปแล้ว');
+    var listCard = el('div', null, 'card'), formCard = el('div', null, 'card');
+    view.appendChild(listCard); view.appendChild(formCard);
+    var name = el('input', null, '', { type: 'text', maxlength: '200', id: 't-name' }), code = el('input', null, '', { type: 'text', maxlength: '50', id: 't-code', placeholder: 'เช่น 6-01-028-001' });
+    var crit = el('textarea', null, '', { rows: '8', id: 't-crit', placeholder: 'หัวข้อละ 1 บรรทัด' }), msg = el('div', null, 'ferr');
+    var save = el('button', 'บันทึกแบบประเมิน', '', { type: 'button' }), off = el('button', 'ปิดใช้แบบนี้', 'danger', { type: 'button' }), fresh = el('button', 'แบบใหม่', 'secondary', { type: 'button' });
+    var title = el('h2', 'แบบใหม่'), cur = null;
+    add(formCard, title, add(el('div', null, 'row'), add(el('div'), el('label', 'ชื่อแบบประเมิน *', '', { for: 't-name' }), name), add(el('div'), el('label', 'รหัสวัสดุ (ถ้าใช้เฉพาะรายการ)', '', { for: 't-code' }), code)),
+        el('label', 'หัวข้อประเมิน * (1–20 ข้อ · คะแนน 1–5 ทุกข้อ)', '', { for: 't-crit' }), crit, msg, add(el('div', null, 'actions'), save, off, fresh));
+    function edit(t) {
+      cur = t; title.textContent = t ? 'แก้ไข: ' + t.name : 'แบบใหม่';
+      name.value = t ? t.name : ''; code.value = t ? t.item_code || '' : ''; crit.value = t ? t.criteria.join('\n') : ''; msg.textContent = ''; off.classList.toggle('hidden', !t);
+    }
+    function load() {
+      clear(listCard); listCard.appendChild(el('h2', 'แบบที่ใช้อยู่'));
+      return callApi('m2.template.list').then(function (r) {
+        if (!alive()) return;
+        if (!r.ok) { listCard.appendChild(el('span', errText(r), 'fail')); return; }
+        var ul = el('ul', null, 'tasklist');
+        r.data.forEach(function (t) {
+          var a = el('a', null, 'task', { href: 'javascript:void(0)' });
+          add(a, add(el('div', null, 'task-main'), el('b', t.name)), el('div', t.criteria.length + ' ข้อ' + (t.item_code ? ' · ' + t.item_code : ''), 'muted'));
+          a.addEventListener('click', function (ev) { ev.preventDefault(); edit(t); name.focus(); });
+          ul.appendChild(add(el('li'), a));
+        });
+        listCard.appendChild(ul);
+      });
+    }
+    function send(extra) {
+      var p = { name: name.value.trim(), item_code: code.value.trim(), criteria: crit.value.split('\n') };
+      if (cur) { p.id = cur.id; p.version = cur.version; }
+      Object.keys(extra || {}).forEach(function (k) { p[k] = extra[k]; });
+      return callApi('m2.template.save', p).then(function (r) {
+        if (!r.ok) { msg.textContent = r.fields ? Object.keys(r.fields).map(function (k) { return fieldText(r.fields[k]); }).join(', ') : ''; reportFail(r); return; }
+        toast('บันทึกแล้ว'); edit(null); return load();
+      });
+    }
+    save.addEventListener('click', function () {
+      if (!name.value.trim() || !crit.value.trim()) { msg.textContent = 'ต้องมีชื่อและหัวข้ออย่างน้อย 1 ข้อ'; return; }
+      guard(save, function () { return send(); });
+    });
+    off.addEventListener('click', function () { if (cur && window.confirm('ปิดใช้ "' + cur.name + '"? รอบที่ใช้ไปแล้วไม่เปลี่ยน')) guard(off, function () { return send({ is_active: false }); }); });
+    fresh.addEventListener('click', function () { edit(null); name.focus(); });
+    edit(null); load();
+  }
+
   /** ลิงก์ลงทะเบียน: ส่งลิงก์เดียวในกลุ่มไลน์ คนในหอสมัครเองได้ (ได้บทบาท USER เท่านั้น) */
   function joinCard(view, alive) {
     var card = add(el('div', null, 'card'), el('h2', 'ลิงก์ลงทะเบียน')), body = el('div'); card.appendChild(body); view.appendChild(card);

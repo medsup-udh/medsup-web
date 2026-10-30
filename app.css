@@ -138,3 +138,39 @@ a.who-link { color:inherit; text-decoration:none; } a.who-link:hover { text-deco
   main { padding:0; max-width:none; }
   .paper { border:0; margin:0; padding:0; max-width:none; }
 }
+
+/* ---------- Menu 2 ประเมินวัสดุ ---------- */
+.badge.s-OPEN { background:var(--chip); } .badge.s-CLOSED { color:var(--ok); border-color:var(--ok); }
+.chip.ok { background:transparent; color:var(--ok); border:1px solid var(--ok); } .chip.bad { background:transparent; color:var(--bad); border:1px solid var(--bad); }
+.tasklist { list-style:none; margin:0; padding:0; }
+.tasklist li + li { border-top:1px solid var(--line); }
+.tasklist a.task { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; padding:10px 4px; text-decoration:none; color:inherit; border-radius:10px; }
+.tasklist a.task:hover { background:var(--brand-soft); }
+.task-meta { display:flex; gap:8px; align-items:center; }
+.card.eval-due { border-left:4px solid var(--brand); }
+.scoreform fieldset.crit { border:0; border-top:1px solid var(--line); margin:0; padding:12px 0 6px; }
+.scoreform fieldset.crit:first-of-type { border-top:0; }
+.scoreform legend { font-weight:600; padding:0; line-height:1.5; }
+.scale { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.scale .pick { margin:0; display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border:1px solid var(--field); border-radius:22px; cursor:pointer; color:var(--text); font-size:15px; }
+.scale .pick input { position:absolute; opacity:0; width:1px; height:1px; }
+.scale .pick:has(input:checked) { background:var(--brand); border-color:var(--brand); color:var(--brand-text); font-weight:600; }
+.scale .pick:has(input:focus-visible) { outline:3px solid var(--focus); outline-offset:2px; }
+.scale .pick.na { border-style:dashed; color:var(--muted); }
+.scale .pick.wide { min-width:140px; justify-content:center; }
+.score-line { font-weight:600; color:var(--brand); margin:10px 0 0; }
+.roundform .itemcard { border:1px solid var(--line) !important; border-radius:12px; padding:12px 14px 8px !important; margin:12px 0 0 !important; }
+.roundform .itemcard legend { padding:0 6px; }
+.unitrow { display:grid; grid-template-columns:1fr 110px auto; gap:8px; align-items:start; margin-bottom:6px; }
+.unitrow .ferr { grid-column:1 / -1; }
+.unitrow input[type=number] { font:inherit; font-size:16px; padding:8px 10px; min-height:42px; border:1px solid var(--field); border-radius:10px; background:var(--card); color:var(--text); width:100%; }
+.lbl-sm { font-size:15px; color:var(--muted); margin:10px 0 4px; }
+label.check { display:flex; align-items:center; gap:6px; color:var(--text); }
+.paper .p-center { text-align:center; margin:-6px 0 10px; }
+.paper table.ptable { width:100%; border-collapse:collapse; margin:8px 0; font-size:12pt; }
+.paper table.ptable th, .paper table.ptable td { border:1px solid #555; padding:3px 6px; text-align:left; vertical-align:top; color:#000; }
+.paper table.ptable th { background:#f0f0f0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.paper .p-sum { font-weight:700; margin:6px 0; }
+.paper .p-crit { font-size:11pt; margin-top:8px; }
+.paper .p-notes { margin:2px 0 6px 1.2em; padding:0; }
+@media (max-width:640px) { .unitrow { grid-template-columns:1fr 90px; } .unitrow button { grid-column:1 / -1; justify-self:start; } .paper table.ptable { font-size:10pt; } }
