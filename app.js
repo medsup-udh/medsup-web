@@ -39,10 +39,12 @@
   /* ป้ายภาษาไทยของสถานะ/คำสั่ง — ถ้อยคำชั่วคราว รอผู้ใช้ยืนยันตอนกำหนดขั้นตอนของแต่ละ Menu */
   var STATUS_LABEL = { DRAFT: 'แบบร่าง', SUBMITTED: 'ส่งแล้ว', IN_REVIEW: 'กำลังตรวจสอบ', RETURNED: 'ส่งกลับแก้ไข', APPROVED: 'อนุมัติแล้ว',
                        COMPLETED: 'เสร็จสิ้น', REJECTED: 'ไม่อนุมัติ', CANCELLED: 'ยกเลิก' };
-  var ACTION_LABEL = { SUBMIT: 'ส่ง', RECEIVE: 'รับเรื่อง', RETURN: 'ส่งกลับ', COMPLETE: 'ปิดงาน', CANCEL: 'ยกเลิก', APPROVE: 'อนุมัติ', REJECT: 'ไม่อนุมัติ' };
+  var ACTION_LABEL = { SUBMIT: 'ส่ง', RECEIVE: 'รับเรื่อง', RETURN: 'ส่งกลับแก้ไข', COMPLETE: 'ปิดงาน', CANCEL: 'ยกเลิก', APPROVE: 'อนุมัติ', REJECT: 'ไม่อนุมัติ' };
+  /* ชื่อ Menu ตาม SYSTEM_BLUEPRINT ข้อ 1.1 — Menu 2–6 ยังไม่เปิดใช้ */
+  var MODULE_NAME = { M1: 'รายงานปัญหา', M2: 'สินค้าตัวอย่าง', M3: 'ประเมิน', M4: 'เบิกควบคุม', M5: 'จัดซื้อนอกแผน', M6: 'ยืนยันแผน' };
   function statusLabel(s) { return STATUS_LABEL[s] || s; }
   function actionLabel(a) { return ACTION_LABEL[a] || a; }
-  function moduleLabel(m) { return m ? 'Menu ' + m.replace(/^M/, '') + ' (' + m + ')' : '-'; }
+  function moduleLabel(m) { return m ? (MODULE_NAME[m] || m) : '-'; }
   function badge(status) { return el('span', statusLabel(status), 'badge s-' + String(status).replace(/[^A-Z_]/g, '')); }
   function chip(text) { return el('span', text, 'chip'); }
 
@@ -57,13 +59,25 @@
   var FIELD_MSG = { required: 'ต้องกรอก', invalid_email: 'รูปแบบอีเมลไม่ถูกต้อง', too_long: 'ยาวเกินไป', must_be_text: 'ต้องเป็นข้อความ', unknown_field: 'ช่องไม่ถูกต้อง',
                     bad_item: 'ค่าไม่ถูกต้อง', invalid_chars: 'มีตัวอักษรที่ไม่อนุญาต', too_small: 'น้อยเกินไป', too_large: 'มากเกินไป', must_be_integer: 'ต้องเป็นจำนวนเต็ม',
                     invalid_date: 'วันที่ไม่ถูกต้อง', type_not_allowed: 'ชนิดไฟล์ไม่รองรับ (รับ PDF, JPG, PNG)', type_mismatch: 'เนื้อไฟล์ไม่ตรงกับนามสกุล',
-                    bad_base64: 'อ่านไฟล์ไม่สำเร็จ', empty: 'ไฟล์ว่าง', too_many: 'แนบไฟล์ครบจำนวนสูงสุดแล้ว' };
+                    bad_base64: 'อ่านไฟล์ไม่สำเร็จ', empty: 'ไฟล์ว่าง', too_many: 'แนบไฟล์ครบจำนวนสูงสุดแล้ว',
+                    not_found: 'ไม่พบในรายการ (อาจถูกปิดใช้งาน)', invalid_phone: 'รูปแบบเบอร์โทรไม่ถูกต้อง', future_date: 'เป็นวันในอนาคตไม่ได้',
+                    not_allowed_value: 'ค่าไม่ถูกต้อง', pick_from_list: 'เลือกจากรายการ', too_short: 'สั้นเกินไป' };
   function fieldText(code) { return FIELD_MSG[code] || 'ไม่ถูกต้อง'; }
+  var FIELD_LABEL = { department_id: 'หน่วยงาน', phone: 'เบอร์โทรศัพท์', item_id: 'วัสดุ', item_name: 'วัสดุที่พบปัญหา', vendor_id: 'บริษัท', vendor_text: 'บริษัท/ยี่ห้อ',
+                      problem_type: 'ประเภทปัญหา', problem_1: 'ปัญหาที่พบ ๓.๑', problem_2: '๓.๒', problem_other: '๓.๓ อื่นๆ', suggestion: 'ข้อเสนอแนะ',
+                      reporter_name: 'ชื่อผู้รายงาน', reporter_position: 'ตำแหน่งผู้รายงาน', head_name: 'ชื่อหัวหน้าหน่วยงาน', head_position: 'ตำแหน่งหัวหน้าหน่วยงาน',
+                      problem_found_date: 'วันที่พบปัญหา', lot_no: 'เลข Lot', expiry_date: 'วันหมดอายุ', review_result: 'ผลการตรวจสอบ', reply_to_unit: 'ผลแจ้งกลับหน่วยงาน',
+                      report: 'ข้อมูลรายงาน', comment: 'เหตุผล', note: 'บันทึก' };
+  /** {ช่อง: รหัส} → "หน่วยงาน: ต้องกรอก, ..." */
+  function describeFields(fields) {
+    return Object.keys(fields || {}).map(function (k) { return (FIELD_LABEL[k] || k) + ': ' + fieldText(fields[k]); }).join(', ');
+  }
 
   /* ---------- เรียก API ---------- */
   var stats = { busyRetries: 0 }, MAX_BUSY_RETRIES = 8;
   /* คำสั่งที่แก้ข้อมูลและกันบันทึกซ้ำด้วย request_id (สร้างครั้งเดียวต่อการกระทำ ใช้ซ้ำเมื่อลองใหม่) */
-  var WRITE_ACTIONS = ['users.upsert', 'users.set_active', 'users.grant_role', 'users.revoke_role', 'workflow.transition', 'attachments.remove', 'config.docnumber.update'];
+  var WRITE_ACTIONS = ['users.upsert', 'users.set_active', 'users.grant_role', 'users.revoke_role', 'workflow.transition', 'attachments.remove', 'config.docnumber.update',
+                       'm1.save', 'm1.followup.add', 'm1.review.save', 'spike.demo.clear'];
   function newRequestId() {
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
   }
@@ -83,7 +97,8 @@
   function callApi(action, payload, opts) {
     opts = opts || {};
     var isWrite = WRITE_ACTIONS.indexOf(action) >= 0;
-    var requestId = isWrite ? newRequestId() : null, netRetries = 0;
+    /* opts.requestId: ใช้รหัสเดิมเมื่อผู้ใช้กดซ้ำหลังเครือข่ายหลุด (Backend คืนผลเดิม ไม่สร้างซ้ำ) */
+    var requestId = isWrite ? (opts.requestId || newRequestId()) : null, netRetries = 0;
     function attempt(n) {
       return callOnce(action, payload, requestId, opts.timeout).then(function (r) {
         if (!r.ok && r.code === 'BUSY' && n < MAX_BUSY_RETRIES) {
@@ -109,7 +124,7 @@
     Promise.resolve().then(fn).catch(function (e) { toast('เกิดข้อผิดพลาดที่หน้าจอ: ' + (e && e.message), true); })
       .finally(function () { btn.disabled = false; btn.removeAttribute('aria-busy'); });
   }
-  function reportFail(r) { toast(errText(r), true); }
+  function reportFail(r) { toast(errText(r) + (r.fields ? ' — ' + describeFields(r.fields) : ''), true); }
 
   /* ---------- เข้าสู่ระบบ ---------- */
   window.MedsupInitGoogle = function () {
@@ -133,6 +148,7 @@
 
   function signedOut(msg) {
     session = null; me = null; rolesAvailable = []; viewToken++;
+    Object.keys(masterCache).forEach(function (k) { delete masterCache[k]; });
     ['who', 'logout', 'nav', 'view'].forEach(function (id) { $(id).classList.add('hidden'); });
     $('login-view').classList.remove('hidden');
     $('login-result').textContent = msg || ''; $('login-result').className = msg ? 'fail' : '';
@@ -158,7 +174,9 @@
   /* ---------- เมนู / เส้นทาง ---------- */
   var PAGES = [
     { path: '', label: 'หน้าหลัก', render: pageDashboard },
+    { path: 'report', label: 'แจ้งปัญหา', roles: ['USER', 'OFFICER'], render: pageReportForm },
     { path: 'documents', label: 'เอกสาร', render: pageDocuments },
+    { path: 'print', label: 'พิมพ์', nav: false, render: pagePrint },
     { path: 'master', label: 'ข้อมูลหลัก', render: pageMaster },
     { path: 'users', label: 'ผู้ใช้', roles: ['ADMIN'], render: pageUsers },
     { path: 'settings', label: 'ตั้งค่า', roles: ['ADMIN'], render: pageSettings },
@@ -168,7 +186,7 @@
 
   function buildNav() {
     var nav = clear($('nav'));
-    PAGES.filter(allowed).forEach(function (p) {
+    PAGES.filter(function (p) { return allowed(p) && p.nav !== false; }).forEach(function (p) {
       var a = el('a', p.label, '', { href: '#/' + p.path }); a.dataset.path = p.path; nav.appendChild(a);
     });
   }
@@ -215,12 +233,17 @@
   }
 
   function pageDashboard(view, args, alive) {
-    pageTitle(view, 'หน้าหลัก', 'สวัสดี ' + me.full_name);
+    var top = pageTitle(view, 'หน้าหลัก', 'สวัสดี ' + me.full_name);
+    if (hasRole('USER') || hasRole('OFFICER')) add(top, add(el('div', null, 'actions'), el('a', '+ แจ้งปัญหาวัสดุ', 'btn', { href: '#/report' })));
     var box = loading(view);
     callApi('dashboard.summary').then(function (r) {
       if (!alive()) return; box.remove();
       if (!r.ok) { add(view, add(el('div', null, 'card'), el('span', errText(r), 'fail'))); return; }
       var d = r.data;
+      if (d.admin && d.admin.officers === 0) {
+        var ow = add(el('div', null, 'notice', { role: 'alert' }), document.createTextNode('ยังไม่มีเจ้าหน้าที่พัสดุ (OFFICER) — รายงานที่ส่งมาจะไม่มีผู้รับเรื่อง · '), el('a', 'ให้บทบาทที่เมนูผู้ใช้', '', { href: '#/users' }));
+        view.appendChild(ow);
+      }
       if (d.admin && d.admin.backup && d.admin.backup.warn) {
         var W = { never: 'ยังไม่เคยสำรองข้อมูลอัตโนมัติ — ติดตั้งตัวตั้งเวลาตามคู่มือผู้ดูแลระบบ (docs/ADMIN_GUIDE.md)', failed: 'การสำรองข้อมูลครั้งล่าสุดล้มเหลว — ตรวจสอบโดยเร็ว', stale: 'ไม่มีการสำรองข้อมูลสำเร็จเกิน 2 วัน — ตรวจสอบตัวตั้งเวลา' };
         view.appendChild(el('div', W[d.admin.backup.warn] || 'ตรวจสอบการสำรองข้อมูล', 'notice', { role: 'alert' }));
@@ -256,7 +279,7 @@
       if (d.admin) {
         var ad = add(el('div', null, 'card'), el('h2', 'ภาพรวมระบบ (ผู้ดูแลระบบ)'));
         var kv = el('dl', null, 'kv');
-        add(kv, el('dt', 'ผู้ใช้ที่ใช้งานอยู่'), el('dd', String(d.admin.users)),
+        add(kv, el('dt', 'ผู้ใช้ที่ใช้งานอยู่'), el('dd', String(d.admin.users) + (typeof d.admin.officers === 'number' ? ' (เจ้าหน้าที่พัสดุ ' + d.admin.officers + ')' : '')),
             el('dt', 'ข้อมูลหลัก'), el('dd', 'วัสดุ ' + d.admin.master.items + ' · ผู้ขาย ' + d.admin.master.vendors + ' · หน่วยงาน ' + d.admin.master.departments + ' · ยังไม่มีรหัส ' + d.admin.master.pending_items));
         if (d.admin.backup) {
           var bk = d.admin.backup, last = bk.last, btxt = !last ? 'ยังไม่เคยสำรอง' : last.ok ? fmtDate(last.at) + ' (สำเร็จ · วันที่ ' + last.date + ')' : 'ล้มเหลวเมื่อ ' + fmtDate(last.at) + (last.message ? ' — ' + last.message : '');
@@ -278,7 +301,8 @@
   /* ---------- เอกสาร: รายการ + ค้นหา ---------- */
   function pageDocuments(view, args, alive) {
     if (args[0]) return pageDocumentDetail(view, decodeURIComponent(args[0]), alive);
-    pageTitle(view, 'เอกสาร', 'ค้นหาจากเลขที่ ชื่อเรื่อง ชื่อหน่วยงาน หรือชื่อผู้ขอ — เห็นเฉพาะเอกสารที่คุณมีสิทธิ์');
+    var top = pageTitle(view, 'เอกสาร', 'ค้นจากเลขที่ ชื่อเรื่อง หน่วยงาน หรือชื่อผู้ขอ');
+    if (hasRole('USER') || hasRole('OFFICER')) add(top, add(el('div', null, 'actions'), el('a', '+ แจ้งปัญหาวัสดุ', 'btn', { href: '#/report' })));
     var f = { q: '', module: '', status: '', from: '', to: '', mine_only: false, page: 1 };
     var pre = sessionStorageTake('docfilter'); if (pre) { try { var o = JSON.parse(pre); Object.keys(o).forEach(function (k) { f[k] = o[k]; }); } catch (e) { /* ข้าม */ } }
 
@@ -339,24 +363,46 @@
   }
 
   function renderDetail(view, data, refresh) {
-    var d = data.document;
+    var d = data.document, md = data.module_data;
+    var isM1 = d.module === 'M1' && !!md;
     var head = el('div', null, 'card doc-part');
     add(head, el('h1', d.title), add(el('div'), badge(d.status), el('span', ' ' + (d.doc_no || '(ยังไม่มีเลขที่)') + (d.revision ? ' · แก้ไขครั้งที่ ' + d.revision : ''), 'muted')));
     var kv = el('dl', null, 'kv');
-    add(kv, el('dt', 'Menu'), el('dd', moduleLabel(d.module)), el('dt', 'หน่วยงาน'), el('dd', d.department_name || '-'), el('dt', 'ผู้ขอ'), el('dd', d.requester_name || '-'),
-        el('dt', 'สร้างเมื่อ'), el('dd', fmtDate(d.created_at)), el('dt', 'ส่งเมื่อ'), el('dd', fmtDate(d.submitted_at)), el('dt', 'ปิดเมื่อ'), el('dd', fmtDate(d.closed_at)));
+    if (isM1) {
+      add(kv, el('dt', 'หน่วยงาน'), el('dd', d.department_name || '-'),
+          el('dt', 'ผู้รายงาน'), el('dd', (md.report && md.report.reporter_name) || d.requester_name || '-'));
+      if (md.submitted_at || d.submitted_at) add(kv, el('dt', 'ส่งเมื่อ'), el('dd', fmtDate(md.submitted_at || d.submitted_at)));
+      if (md.received) add(kv, el('dt', 'รับเรื่อง'), el('dd', (md.received.by_name || '-') + ' · ' + fmtDate(md.received.at)));
+      if (d.closed_at) add(kv, el('dt', d.status === 'CANCELLED' ? 'ยกเลิกเมื่อ' : 'ปิดงานเมื่อ'), el('dd', fmtDate(d.closed_at)));
+    } else {
+      add(kv, el('dt', 'Menu'), el('dd', moduleLabel(d.module)), el('dt', 'หน่วยงาน'), el('dd', d.department_name || '-'), el('dt', 'ผู้ขอ'), el('dd', d.requester_name || '-'),
+          el('dt', 'สร้างเมื่อ'), el('dd', fmtDate(d.created_at)), el('dt', 'ส่งเมื่อ'), el('dd', fmtDate(d.submitted_at)), el('dt', 'ปิดเมื่อ'), el('dd', fmtDate(d.closed_at)));
+    }
     head.appendChild(kv);
 
-    if (data.actions.length) {
-      var acts = el('div', null, 'actions');
-      data.actions.forEach(function (a) {
-        var b = el('button', actionLabel(a.action), a.action === 'CANCEL' || a.action === 'REJECT' ? 'danger' : '', { type: 'button' });
-        b.addEventListener('click', function () { runAction(b, d, a, refresh); });
-        acts.appendChild(b);
-      });
-      add(head, el('h3', 'ดำเนินการ'), acts);
-    }
+    var acts = el('div', null, 'actions');
+    if (isM1 && md.can_edit) acts.appendChild(el('a', 'แก้ไข', 'btn secondary', { href: '#/report/' + encodeURIComponent(d.id) }));
+    data.actions.forEach(function (a) {
+      if (isM1 && a.action === 'COMPLETE') return;   // ปิดงานทำในกล่องงานพัสดุ (ต้องบันทึกผลก่อน)
+      var b = el('button', actionLabel(a.action), a.action === 'CANCEL' || a.action === 'REJECT' ? 'danger' : (a.action === 'RETURN' ? 'secondary' : ''), { type: 'button' });
+      b.addEventListener('click', function () { runAction(b, d, a, refresh); });
+      acts.appendChild(b);
+    });
+    if (isM1 && d.doc_no && md.report) acts.appendChild(el('a', 'พิมพ์ / PDF', 'btn secondary', { href: '#/print/' + encodeURIComponent(d.id) }));
+    if (acts.childNodes.length) head.appendChild(acts);
+    if (isM1 && d.status === 'RETURNED' && md.can_edit) head.appendChild(el('div', 'พัสดุส่งกลับให้แก้ไข — ดูเหตุผลในประวัติด้านล่าง แก้แล้วกดส่งอีกครั้ง', 'notice'));
     view.appendChild(head);
+
+    if (isM1) {
+      if (md.reply && d.status === 'COMPLETED') {
+        var rc = el('div', null, 'card doc-part reply');
+        add(rc, el('h2', 'ผลแจ้งกลับจากพัสดุ'), el('div', md.reply.text, 'pre'), md.reply.at ? el('div', fmtDate(md.reply.at), 'muted') : null);
+        view.appendChild(rc);
+      }
+      if (md.report) view.appendChild(m1ReportCard(md.report));
+      else view.appendChild(el('div', 'ไม่พบข้อมูลรายงานของเอกสารนี้', 'card doc-part notice'));
+      if (md.officer) view.appendChild(m1OfficerCard(d, md, refresh));
+    }
 
     var att = el('div', null, 'card doc-part'); add(att, el('h2', 'ไฟล์แนบ (' + data.attachments.length + ')'));
     if (data.attachments.length) {
@@ -390,7 +436,9 @@
   }
 
   /* ถามความเห็น (ถ้าคำสั่งต้องมี) แล้วส่งคำสั่ง — แสดงผลสำเร็จเมื่อเซิร์ฟเวอร์ยืนยันเท่านั้น */
+  var CONFIRM_ACTION = { CANCEL: 'ยกเลิกเอกสารนี้? ยกเลิกแล้วย้อนกลับไม่ได้', SUBMIT: null };
   function runAction(btn, doc, action, refresh) {
+    if (CONFIRM_ACTION[action.action] && !window.confirm(CONFIRM_ACTION[action.action])) return;
     function send(comment) {
       var payload = { document_id: doc.id, action: action.action, version: doc.version };
       if (comment) payload.comment = comment;
@@ -493,6 +541,427 @@
         toast('ลบไฟล์แล้ว'); return refresh();
       });
     });
+  }
+
+  /* ---------- Menu 1: รายงานปัญหาจากการใช้วัสดุการแพทย์ ---------- */
+  var M1_TYPES = ['ชำรุด', 'หมดอายุ', 'อื่นๆ'];
+  var M1_REQUIRED = ['department_id', 'phone', 'item_name', 'vendor_text', 'problem_1', 'reporter_name', 'reporter_position', 'problem_found_date'];
+  var M1_PLAIN = ['phone', 'problem_1', 'problem_2', 'problem_other', 'suggestion', 'reporter_name', 'reporter_position', 'head_name', 'head_position',
+                  'problem_found_date', 'lot_no', 'expiry_date'];
+  var TH_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+
+  function thaiDigits(s) { return String(s).replace(/[0-9]/g, function (c) { return '๐๑๒๓๔๕๖๗๘๙'.charAt(+c); }); }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  /** ส่วนของวันเวลาตามเวลาไทย (UTC+7 ไม่มีเวลาออมแสง) — ไม่ขึ้นกับเขตเวลาของเครื่องผู้ใช้ */
+  function bkk(iso) {
+    var d = new Date(iso); if (isNaN(d.getTime())) return null;
+    var t = new Date(d.getTime() + 7 * 3600 * 1000);
+    return { y: t.getUTCFullYear(), m: t.getUTCMonth(), d: t.getUTCDate(), hh: t.getUTCHours(), mi: t.getUTCMinutes() };
+  }
+  function todayYmd() { var p = bkk(new Date().toISOString()); return p.y + '-' + pad2(p.m + 1) + '-' + pad2(p.d); }
+  /** '2026-10-29' → '29 ตุลาคม 2569' · ISO datetime ก็ได้ (แปลงเป็นเวลาไทย) · thai=true → เลขไทย */
+  function thaiDate(v, withTime, thai) {
+    if (!v) return '';
+    var p = /^\d{4}-\d{2}-\d{2}$/.test(v) ? { y: +v.slice(0, 4), m: +v.slice(5, 7) - 1, d: +v.slice(8, 10) } : bkk(v);
+    if (!p) return '';
+    var s = p.d + ' ' + TH_MONTHS[p.m] + ' ' + (p.y + 543) + (withTime && p.hh !== undefined ? ' เวลา ' + pad2(p.hh) + '.' + pad2(p.mi) + ' น.' : '');
+    return thai ? thaiDigits(s) : s;
+  }
+  function storeGet(k) { try { var v = sessionStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function storeSet(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ไม่มีที่เก็บก็ไม่เป็นไร */ } }
+  function storeDel(k) { try { sessionStorage.removeItem(k); } catch (e) { /* ข้าม */ } }
+
+  var MASTER_ACTION = { departments: 'master.departments', items: 'master.items', vendors: 'master.vendors' };
+  /** ข้อมูลหลักโหลดครั้งเดียวต่อการเข้าสู่ระบบ (ใช้ร่วมกับหน้า "ข้อมูลหลัก") */
+  function loadMaster(kind) {
+    if (masterCache[kind]) return Promise.resolve({ ok: true, data: { rows: masterCache[kind] } });
+    return callApi(MASTER_ACTION[kind]).then(function (r) { if (r.ok) masterCache[kind] = r.data.rows; return r; });
+  }
+
+  function pageReportForm(view, args, alive) {
+    var docId = args[0] ? decodeURIComponent(args[0]) : null;
+    pageTitle(view, docId ? 'แก้ไขรายงานปัญหา' : 'แจ้งปัญหาวัสดุการแพทย์', 'ช่องที่มี * ต้องกรอกก่อนส่ง');
+    var box = loading(view);
+    var loads = [loadMaster('departments'), loadMaster('items'), loadMaster('vendors')];
+    if (docId) loads.push(callApi('documents.get', { id: docId }));
+    Promise.all(loads).then(function (res) {
+      if (!alive()) return; box.remove();
+      for (var i = 0; i < res.length; i++) if (!res[i].ok) { add(view, add(el('div', null, 'card'), el('span', errText(res[i]), 'fail'))); return; }
+      var detail = docId ? res[3].data : null;
+      if (detail && (detail.document.module !== 'M1' || !detail.module_data || !detail.module_data.can_edit || !detail.module_data.report)) {
+        add(view, add(el('div', null, 'notice'), document.createTextNode('รายงานนี้แก้ไขไม่ได้แล้ว · '), el('a', 'ดูรายละเอียด', '', { href: '#/documents/' + encodeURIComponent(docId) })));
+        return;
+      }
+      m1Form(view, res[0].data.rows, res[1].data.rows, res[2].data.rows, detail, alive);
+    });
+  }
+
+  function m1Form(view, depts, items, vendors, detail, alive) {
+    var rep = detail ? detail.module_data.report : null;
+    var st = { docId: detail ? detail.document.id : null, version: rep ? rep.version : null, docVersion: detail ? detail.document.version : null,
+               createRid: null, createSig: null, busy: false, files: [] };
+    var draftKey = 'm1form:' + (st.docId || 'new');
+    var deptByName = {}, deptName = {}, itemByLabel = {}, itemById = {}, vendorByName = {};
+    depts.forEach(function (x) { deptByName[x.name] = x; deptName[x.id] = x.name; });
+    function itemLabel(it) { return it.name + ' · ' + it.code; }
+    items.forEach(function (it) { itemByLabel[itemLabel(it)] = it; itemById[it.id] = it; });
+    vendors.forEach(function (v) { vendorByName[v.name] = v; });
+
+    var form = el('form', null, 'card m1form', { autocomplete: 'off', novalidate: 'novalidate' });
+    var inputs = {}, errBox = {};
+    function datalist(id, values) {
+      var dl = el('datalist', null, '', { id: id });
+      values.forEach(function (v) { var o = document.createElement('option'); o.value = v; dl.appendChild(o); });
+      return dl;
+    }
+    function inp(name, type, max) { var i = el('input', null, '', { type: type || 'text', maxlength: String(max || 200) }); inputs[name] = i; return i; }
+    function area(name, max, rows) { var t = el('textarea', null, '', { maxlength: String(max || 3000), rows: String(rows || 3) }); inputs[name] = t; return t; }
+    function field(name, label, input, req, hint) {
+      var wrap = el('div', null, 'f');
+      input.id = 'm1-' + name;
+      var e = el('div', null, 'ferr', { id: 'm1e-' + name });
+      input.setAttribute('aria-describedby', e.id);
+      add(wrap, el('label', label + (req ? ' *' : ''), '', { for: input.id }), input, hint ? el('div', hint, 'muted') : null, e);
+      errBox[name] = e;
+      return wrap;
+    }
+    function sec(title) { var s = el('fieldset', null, 'sec'); s.appendChild(el('legend', title)); form.appendChild(s); return s; }
+    function row() { var r = el('div', null, 'row'); for (var i = 0; i < arguments.length; i++) r.appendChild(arguments[i]); return r; }
+
+    var dept = inp('department_id', 'text', 200); dept.setAttribute('list', 'dl-m1-dept');
+    var phone = inp('phone', 'tel', 50); phone.setAttribute('inputmode', 'tel');
+    add(sec('หน่วยงาน'), row(field('department_id', 'ชื่อหน่วยงาน', dept, true, 'เลือกจากรายการ'), field('phone', 'เบอร์โทรศัพท์', phone, true)));
+
+    var item = inp('item_name', 'text', 500); item.setAttribute('list', 'dl-m1-item');
+    var lot = inp('lot_no', 'text', 100), exp = inp('expiry_date', 'date', 10);
+    add(sec('๑. วัสดุที่พบปัญหา'), field('item_name', 'ชื่อวัสดุ', item, true, 'พิมพ์ชื่อหรือรหัสแล้วเลือก (ไม่มีในรายการ พิมพ์เองได้)'),
+        row(field('lot_no', 'เลข Lot', lot), field('expiry_date', 'วันหมดอายุ', exp)));
+
+    var vendor = inp('vendor_text', 'text', 1000); vendor.setAttribute('list', 'dl-m1-vendor');
+    add(sec('๒. บริษัท ยี่ห้อ หรือผู้จัดจำหน่าย'), field('vendor_text', 'ชื่อบริษัท/ยี่ห้อ/ชื่อการค้า', vendor, true));
+
+    var type = el('select'); inputs.problem_type = type;
+    [''].concat(M1_TYPES).forEach(function (t) { var o = el('option', t || 'ไม่ระบุ'); o.value = t; type.appendChild(o); });
+    var found = inp('problem_found_date', 'date', 10); found.max = todayYmd();
+    add(sec('๓. ปัญหาที่พบ'), row(field('problem_type', 'ประเภทปัญหา', type), field('problem_found_date', 'วันที่พบปัญหา', found, true)),
+        field('problem_1', '๓.๑ รายละเอียดปัญหา', area('problem_1', 3000, 4), true),
+        field('problem_2', '๓.๒', area('problem_2', 3000, 2)), field('problem_other', '๓.๓ อื่นๆ', area('problem_other', 3000, 2)));
+
+    add(sec('๔. ข้อเสนอแนะ'), field('suggestion', 'ข้อเสนอแนะ', area('suggestion', 3000, 3)));
+
+    add(sec('ผู้รายงาน'), row(field('reporter_name', 'ชื่อ-สกุล', inp('reporter_name'), true), field('reporter_position', 'ตำแหน่ง', inp('reporter_position'), true)),
+        row(field('head_name', 'หัวหน้าหน่วยงาน', inp('head_name')), field('head_position', 'ตำแหน่งหัวหน้า', inp('head_position'))));
+
+    var fileIn = el('input', null, '', { type: 'file', multiple: 'multiple', accept: '.pdf,.jpg,.jpeg,.png', id: 'm1-files' });
+    var fileList = el('div', null, 'muted');
+    add(sec('ไฟล์หลักฐาน (ถ้ามี)'), add(el('div', null, 'f'), el('label', 'รูปถ่าย/เอกสาร PDF, JPG, PNG ไม่เกิน 10 MB ต่อไฟล์', '', { for: 'm1-files' }), fileIn, fileList));
+    function showFiles() { fileList.textContent = st.files.length ? 'รอแนบ: ' + st.files.map(function (f) { return f.name; }).join(', ') : ''; }
+    fileIn.addEventListener('change', function () {
+      [].slice.call(fileIn.files).forEach(function (f) {
+        var ext = (f.name.split('.').pop() || '').toLowerCase();
+        if (ALLOWED_EXT.indexOf(ext) < 0) { toast(f.name + ': ชนิดไฟล์ไม่รองรับ', true); return; }
+        if (f.size > MAX_FILE) { toast(f.name + ': ใหญ่เกิน 10 MB', true); return; }
+        if (f.size === 0) { toast(f.name + ': ไฟล์ว่าง', true); return; }
+        st.files.push(f);
+      });
+      fileIn.value = ''; showFiles();
+    });
+
+    var send = el('button', 'ส่งรายงาน', '', { type: 'submit' }), draft = el('button', 'บันทึกร่าง', 'secondary', { type: 'button' });
+    var back = el('a', 'ยกเลิก', '', { href: st.docId ? '#/documents/' + encodeURIComponent(st.docId) : '#/' });
+    var restored = el('div', null, 'notice hidden', { role: 'status' });
+    add(form, add(el('div', null, 'actions'), send, draft, back));
+    form.insertBefore(restored, form.firstChild);
+    add(form, datalist('dl-m1-dept', depts.map(function (x) { return x.name; })), datalist('dl-m1-item', items.map(itemLabel)),
+        datalist('dl-m1-vendor', vendors.map(function (v) { return v.name; })));
+    view.appendChild(form);
+
+    // ---- ค่าเริ่มต้น / ข้อมูลเดิม / ข้อความที่พิมพ์ค้าง ----
+    function serverValues() {
+      var v = {};
+      if (rep) {
+        M1_PLAIN.forEach(function (k) { v[k] = rep[k] || ''; });
+        v.department_id = rep.department_id ? (deptName[rep.department_id] || '') : '';
+        var it = rep.item_id ? itemById[rep.item_id] : null;
+        v.item_name = it && it.name === rep.item_name ? itemLabel(it) : (rep.item_name || '');
+        v.vendor_text = rep.vendor_text || ''; v.problem_type = rep.problem_type || '';
+      } else {
+        v.reporter_name = me.full_name || ''; v.reporter_position = me.position || '';
+        v.department_id = me.department_id && deptName[me.department_id] ? deptName[me.department_id] : '';
+      }
+      return v;
+    }
+    function apply(v) { Object.keys(inputs).forEach(function (k) { inputs[k].value = v[k] || ''; }); }
+    function snapshot() { var v = {}; Object.keys(inputs).forEach(function (k) { v[k] = inputs[k].value; }); return v; }
+    apply(serverValues());
+    var saved = storeGet(draftKey);
+    if (saved && saved.values && (saved.version || null) === (st.version || null)) {
+      apply(saved.values);
+      clear(restored); restored.classList.remove('hidden');
+      var undo = el('button', 'ล้าง', 'secondary small', { type: 'button' });
+      undo.addEventListener('click', function () { storeDel(draftKey); apply(serverValues()); restored.classList.add('hidden'); });
+      add(restored, document.createTextNode('กู้ข้อความที่พิมพ์ค้างไว้แล้ว '), undo);
+    }
+    var t = null;
+    form.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { storeSet(draftKey, { version: st.version, values: snapshot() }); }, 400); });
+
+    // ---- ตรวจ / รวบรวมข้อมูล ----
+    function collect() {
+      var p = {};
+      var dn = dept.value.trim(); p.department_id = dn && deptByName[dn] ? deptByName[dn].id : '';
+      var iv = item.value.trim(), it = itemByLabel[iv] || null;
+      if (!it) { var same = items.filter(function (x) { return x.name === iv; }); if (same.length === 1) it = same[0]; }
+      p.item_id = it ? it.id : ''; p.item_name = it ? it.name : iv;
+      var vv = vendor.value.trim(); p.vendor_id = vendorByName[vv] ? vendorByName[vv].id : ''; p.vendor_text = vv;
+      p.problem_type = type.value;
+      M1_PLAIN.forEach(function (k) { p[k] = inputs[k].value.trim(); });
+      return p;
+    }
+    function check(p, forSubmit) {
+      var e = {};
+      if (dept.value.trim() && !p.department_id) e.department_id = 'pick_from_list';
+      if (p.phone && !/[0-9๐-๙]/.test(p.phone)) e.phone = 'invalid_phone';
+      if (p.problem_found_date && p.problem_found_date > todayYmd()) e.problem_found_date = 'future_date';
+      if (forSubmit) M1_REQUIRED.forEach(function (k) { if (!p[k] && !e[k]) e[k] = 'required'; });
+      return e;
+    }
+    function showErrors(e) {
+      Object.keys(errBox).forEach(function (k) { errBox[k].textContent = ''; inputs[k] && inputs[k].removeAttribute('aria-invalid'); });
+      var first = null;
+      Object.keys(e).forEach(function (k) {
+        var key = k === 'item_id' ? 'item_name' : k === 'vendor_id' ? 'vendor_text' : k;
+        if (errBox[key]) { errBox[key].textContent = fieldText(e[k]); inputs[key].setAttribute('aria-invalid', 'true'); if (!first) first = inputs[key]; }
+      });
+      if (first) { first.focus(); if (first.scrollIntoView) first.scrollIntoView({ block: 'center' }); }
+      return Object.keys(e).length;
+    }
+    function serverFail(r) {
+      if (r.fields) showErrors(r.fields);
+      reportFail(r);
+    }
+
+    // ---- บันทึก → แนบไฟล์ → (ส่ง) ----
+    function save() {
+      var p = collect(), body = {}, opts = {};
+      Object.keys(p).forEach(function (k) { body[k] = p[k]; });
+      if (st.docId) { body.document_id = st.docId; body.version = st.version; }
+      else {
+        if (!st.createRid) { st.createRid = newRequestId(); st.createSig = JSON.stringify(p); }
+        opts.requestId = st.createRid;
+      }
+      return callApi('m1.save', body, opts).then(function (r) {
+        if (!r.ok) return r;
+        var wasCreate = !st.docId;
+        st.docId = r.data.document_id; st.version = r.data.version; st.docVersion = r.data.doc_version;
+        storeDel(draftKey);
+        if (wasCreate) {
+          var sig = st.createSig; st.createRid = null; st.createSig = null;
+          draftKey = 'm1form:' + st.docId;
+          back.setAttribute('href', '#/documents/' + encodeURIComponent(st.docId));
+          try { history.replaceState(null, '', '#/report/' + encodeURIComponent(st.docId)); } catch (e) { /* ข้าม */ }
+          /* กดซ้ำหลังเครือข่ายหลุด: ระบบคืนผลการสร้างครั้งแรก ถ้าระหว่างนั้นแก้ข้อความ ต้องบันทึกทับอีกครั้ง */
+          if (sig !== JSON.stringify(p)) return save();
+        }
+        return r;
+      });
+    }
+    function uploadPending() {
+      var failed = [], chain = Promise.resolve();
+      st.files.slice().forEach(function (f) {
+        chain = chain.then(function () {
+          fileList.textContent = 'กำลังแนบ ' + f.name + ' ...';
+          return readBase64(f).then(function (b64) {
+            return callApi('attachments.upload', { document_id: st.docId, filename: f.name, data_base64: b64 }, { timeout: 180000 });
+          }).then(function (r) {
+            if (r.ok) st.files.splice(st.files.indexOf(f), 1);
+            else failed.push(f.name + (r.fields ? ' (' + describeFields(r.fields) + ')' : ''));
+          }, function () { failed.push(f.name); });
+        });
+      });
+      return chain.then(function () { showFiles(); return failed; });
+    }
+    function busy(btn, fn) {
+      if (st.busy) return;
+      st.busy = true; send.disabled = true; draft.disabled = true; btn.setAttribute('aria-busy', 'true');
+      Promise.resolve().then(fn).catch(function (e) { toast('เกิดข้อผิดพลาดที่หน้าจอ: ' + (e && e.message), true); })
+        .finally(function () { st.busy = false; send.disabled = false; draft.disabled = false; btn.removeAttribute('aria-busy'); });
+    }
+    function toDetail() { location.hash = '#/documents/' + encodeURIComponent(st.docId); }
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      busy(send, function () {
+        var p = collect();
+        if (showErrors(check(p, true))) { toast('กรอกช่องที่มี * ให้ครบ', true); return; }
+        return save().then(function (r) {
+          if (!r.ok) { serverFail(r); return; }
+          return uploadPending().then(function (failed) {
+            if (failed.length) { toast('บันทึกร่างแล้ว แต่แนบไฟล์ไม่สำเร็จ: ' + failed.join(', ') + ' — แนบใหม่ได้แล้วกดส่ง', true); toDetail(); return; }
+            return callApi('workflow.transition', { document_id: st.docId, action: 'SUBMIT', version: st.docVersion }).then(function (x) {
+              if (!x.ok) { serverFail(x); return; }
+              toast('ส่งรายงานแล้ว เลขที่ ' + x.data.document.doc_no);
+              toDetail();
+            });
+          });
+        });
+      });
+    });
+    draft.addEventListener('click', function () {
+      busy(draft, function () {
+        var p = collect();
+        if (showErrors(check(p, false))) return;
+        return save().then(function (r) {
+          if (!r.ok) { serverFail(r); return; }
+          return uploadPending().then(function (failed) {
+            if (failed.length) toast('บันทึกร่างแล้ว แต่แนบไฟล์ไม่สำเร็จ: ' + failed.join(', '), true); else toast('บันทึกร่างแล้ว');
+            toDetail();
+          });
+        });
+      });
+    });
+  }
+
+  /** รายละเอียดรายงาน (อ่านอย่างเดียว) — แสดงเฉพาะช่องที่มีค่า */
+  function m1ReportCard(r) {
+    var card = el('div', null, 'card doc-part'), kv = el('dl', null, 'kv m1kv');
+    add(card, el('h2', 'รายละเอียดรายงาน'));
+    function row(label, value, multi) { if (value) add(kv, el('dt', label), el('dd', value, multi ? 'pre' : '')); }
+    row('๑. วัสดุ', r.item_name ? r.item_name + (r.item_code ? ' · ' + r.item_code : '') : '');
+    row('เลข Lot', r.lot_no); row('วันหมดอายุ', thaiDate(r.expiry_date));
+    row('๒. บริษัท/ยี่ห้อ', r.vendor_text);
+    row('ประเภทปัญหา', r.problem_type); row('วันที่พบปัญหา', thaiDate(r.problem_found_date));
+    row('๓.๑', r.problem_1, true); row('๓.๒', r.problem_2, true); row('๓.๓ อื่นๆ', r.problem_other, true);
+    row('๔. ข้อเสนอแนะ', r.suggestion, true);
+    row('โทร', r.phone);
+    row('ผู้รายงาน', [r.reporter_name, r.reporter_position].filter(Boolean).join(' · '));
+    row('หัวหน้าหน่วยงาน', [r.head_name, r.head_position].filter(Boolean).join(' · '));
+    card.appendChild(kv);
+    return card;
+  }
+
+  /** กล่องงานพัสดุ (เห็นเฉพาะ OFFICER): บันทึกการประสาน · ผลการตรวจสอบ · ผลแจ้งกลับ · ปิดงาน */
+  function m1OfficerCard(d, md, refresh) {
+    var o = md.officer, card = el('div', null, 'card doc-part officer');
+    add(card, el('h2', 'งานพัสดุ'));
+    if (d.status === 'SUBMITTED') card.appendChild(el('div', 'กด "รับเรื่อง" ด้านบนก่อน จึงบันทึกผลได้', 'muted'));
+
+    add(card, el('h3', 'บันทึกการประสาน'));
+    if (o.followups.length) {
+      var ul = el('ul', null, 'timeline');
+      o.followups.forEach(function (f) { add(ul, add(el('li'), el('div', f.note, 'pre'), el('div', (f.by_name || '-') + ' · ' + fmtDate(f.acted_at), 'muted'))); });
+      card.appendChild(ul);
+    } else if (!o.can_followup) card.appendChild(el('div', '-', 'muted'));
+    if (o.can_followup) {
+      var note = el('textarea', null, '', { maxlength: '2000', rows: '2', 'aria-label': 'บันทึกการประสาน', placeholder: 'เช่น โทรแจ้งบริษัทให้เข้าตรวจสอบ' });
+      var addBtn = el('button', 'เพิ่มบันทึก', 'secondary small', { type: 'button' });
+      addBtn.addEventListener('click', function () {
+        var text = note.value.trim(); if (!text) { note.focus(); return; }
+        guard(addBtn, function () {
+          return callApi('m1.followup.add', { document_id: d.id, note: text }).then(function (r) {
+            if (!r.ok) { reportFail(r); return; }
+            toast('เพิ่มบันทึกแล้ว'); return refresh();
+          });
+        });
+      });
+      add(card, note, add(el('div', null, 'actions'), addBtn));
+    }
+
+    add(card, el('h3', 'ผลการตรวจสอบ และแจ้งกลับหน่วยงาน'));
+    if (!o.can_review) {
+      if (o.review_result) add(card, el('div', 'ผลการตรวจสอบ', 'muted'), el('div', o.review_result, 'pre'));
+      if (o.reply_to_unit) add(card, el('div', 'ผลแจ้งกลับหน่วยงาน', 'muted'), el('div', o.reply_to_unit, 'pre'));
+      if (!o.review_result && !o.reply_to_unit) card.appendChild(el('div', '-', 'muted'));
+      return card;
+    }
+    var rr = el('textarea', null, '', { maxlength: '3000', rows: '3', id: 'm1-review' }), rp = el('textarea', null, '', { maxlength: '3000', rows: '3', id: 'm1-reply' });
+    rr.value = o.review_result || ''; rp.value = o.reply_to_unit || '';
+    var e1 = el('div', null, 'ferr'), e2 = el('div', null, 'ferr');
+    add(card, el('label', 'ผลการตรวจสอบ (ภายในพัสดุ)', '', { for: 'm1-review' }), rr, e1,
+        el('label', 'ผลแจ้งกลับหน่วยงาน (หน่วยงานเห็นเมื่อปิดงาน)', '', { for: 'm1-reply' }), rp, e2);
+    var saveBtn = el('button', 'บันทึก', 'secondary', { type: 'button' }), closeBtn = el('button', 'บันทึกและปิดงาน', '', { type: 'button' });
+    add(card, add(el('div', null, 'actions'), closeBtn, saveBtn));
+    var ver = o.version;
+    function changed() { return rr.value.trim() !== (o.review_result || '') || rp.value.trim() !== (o.reply_to_unit || ''); }
+    function saveReview() {
+      if (!changed()) return Promise.resolve({ ok: true });
+      return callApi('m1.review.save', { document_id: d.id, version: ver, review_result: rr.value, reply_to_unit: rp.value }).then(function (r) {
+        if (r.ok) { ver = r.data.version; o.review_result = rr.value.trim(); o.reply_to_unit = rp.value.trim(); }
+        return r;
+      });
+    }
+    saveBtn.addEventListener('click', function () {
+      guard(saveBtn, function () { return saveReview().then(function (r) { if (!r.ok) { reportFail(r); return; } toast('บันทึกแล้ว'); return refresh(); }); });
+    });
+    closeBtn.addEventListener('click', function () {
+      e1.textContent = rr.value.trim() ? '' : 'ต้องกรอก'; e2.textContent = rp.value.trim() ? '' : 'ต้องกรอก';
+      if (!rr.value.trim() || !rp.value.trim()) { (rr.value.trim() ? rp : rr).focus(); return; }
+      if (!window.confirm('ปิดงานเรื่องนี้? หลังปิดแก้ไขไม่ได้ และหน่วยงานจะเห็นผลแจ้งกลับ')) return;
+      guard(closeBtn, function () {
+        return saveReview().then(function (r) {
+          if (!r.ok) { reportFail(r); return; }
+          return callApi('workflow.transition', { document_id: d.id, action: 'COMPLETE', version: d.version }).then(function (x) {
+            if (!x.ok) { reportFail(x); return refresh(); }
+            toast('ปิดงานแล้ว'); return refresh();
+          });
+        });
+      });
+    });
+    return card;
+  }
+
+  /* ---------- พิมพ์ / บันทึก PDF (แบบฟอร์มตามฉบับกระดาษ) ---------- */
+  function pagePrint(view, args, alive) {
+    var id = decodeURIComponent(args[0] || '');
+    var box = loading(view);
+    callApi('documents.get', { id: id }).then(function (r) {
+      if (!alive()) return; box.remove();
+      if (!r.ok) { add(view, add(el('div', null, 'card'), el('span', errText(r), 'fail'))); return; }
+      var d = r.data.document, md = r.data.module_data;
+      var bar = el('div', null, 'card no-print actions');
+      add(bar, el('a', '← กลับ', '', { href: '#/documents/' + encodeURIComponent(d.id) }));
+      if (d.module !== 'M1' || !md || !md.report || !d.doc_no) {
+        add(bar, el('span', 'พิมพ์ได้เฉพาะรายงานปัญหาที่ส่งแล้ว', 'muted')); view.appendChild(bar); return;
+      }
+      var pr = el('button', 'พิมพ์ / บันทึกเป็น PDF', '', { type: 'button' });
+      pr.addEventListener('click', function () { window.print(); });
+      add(bar, pr, el('span', 'เลือกเครื่องพิมพ์ "บันทึกเป็น PDF" เพื่อเก็บไฟล์', 'muted'));
+      view.appendChild(bar);
+      view.appendChild(m1Paper(d, md));
+    });
+  }
+
+  function m1Paper(d, md) {
+    var r = md.report, paper = el('article', null, 'paper', { 'aria-label': 'แบบฟอร์มสำหรับพิมพ์' });
+    function lines(n, text, prefix) {
+      var b = el('div', null, 'ruled'); b.style.setProperty('--n', String(n));
+      if (prefix) b.appendChild(el('span', prefix + ' ', 'lbl'));
+      b.appendChild(document.createTextNode(text || ''));
+      return b;
+    }
+    add(paper, el('h1', md.form_title, 'p-title'));
+    add(paper, add(el('p', null, 'p-line'), document.createTextNode('ชื่อหน่วยงาน '), el('span', r.department_name || d.department_name || '', 'fill grow'),
+                   document.createTextNode(' เบอร์โทรศัพท์ '), el('span', r.phone || '', 'fill')));
+    add(paper, el('p', 'ข้าพเจ้าพบว่าเวชภัณฑ์ที่มิใช่ยา หรือวัสดุการแพทย์ที่เบิกจากคลังวัสดุการแพทย์โรงพยาบาลอุดรธานี มีปัญหาในการใช้งานตามรายละเอียดดังนี้', 'p-lead'));
+    add(paper, el('p', '๑. ชนิดของเวชภัณฑ์ที่มิใช่ยา หรือวัสดุการแพทย์', 'p-h'), lines(1, r.item_name));
+    add(paper, el('p', '๒. ชื่อบริษัท ยี่ห้อ ชื่อการค้า หรือผู้จัดจำหน่าย', 'p-h'), lines(2, r.vendor_text));
+    add(paper, el('p', '๓. ปัญหาที่พบ (ให้บรรยายรายละเอียดครบถ้วน)', 'p-h'),
+        lines(2, r.problem_1, '๓.๑'), lines(2, r.problem_2, '๓.๒'), lines(2, r.problem_other, '๓.๓ อื่นๆ'));
+    add(paper, el('p', '๔. ข้อเสนอแนะ', 'p-h'), lines(3, r.suggestion));
+    function sig(name, position, role, dateText) {
+      var s = el('div', null, 'sig');
+      add(s, el('div', 'ลงชื่อ ' + '.'.repeat(34)),
+          el('div', '( ' + (name || '.'.repeat(30)) + ' )'),
+          el('div', 'ตำแหน่ง ' + (position || '.'.repeat(30))),
+          el('div', role, 'role'),
+          el('div', 'วัน/เดือน/ปี ' + (dateText || '.'.repeat(26))));
+      return s;
+    }
+    var submitted = md.submitted_at || d.submitted_at;
+    add(paper, add(el('div', null, 'sigs'), sig(r.reporter_name, r.reporter_position, 'ผู้รายงาน', thaiDate(submitted, false, true)),
+                   sig(r.head_name, r.head_position, 'หัวหน้าหน่วยงาน', '')));
+    add(paper, el('p', 'หมายเหตุ : ขอให้ส่งแบบฟอร์มนี้ที่ หัวหน้ากลุ่มงานพัสดุ รพ.อุดรธานี', 'p-note'));
+    add(paper, el('p', 'เลขที่ ' + d.doc_no + ' · ส่งผ่านระบบเอกสารงานวัสดุการแพทย์เมื่อ ' + thaiDate(submitted, true, true), 'p-sys'));
+    return paper;
   }
 
   /* ---------- ข้อมูลหลัก (อ่านอย่างเดียว) ---------- */
@@ -639,6 +1108,12 @@
     pageTitle(view, 'ทดสอบบันทึกพร้อมกัน', 'ส่งคำสั่งบันทึกพร้อมกันหลายรายการ แล้วตรวจว่าไม่มีรายการซ้ำหรือหาย (ใช้ข้อมูลทดสอบเท่านั้น)');
     var card = el('div', null, 'card'), n = el('input', null, '', { type: 'number', min: '1', max: '200', value: '50', 'aria-label': 'จำนวนรายการ' }), run = el('button', 'เริ่มทดสอบ', '', { type: 'button' }), out = el('div', null, '', { role: 'status' });
     add(card, add(el('p'), document.createTextNode('จำนวน: '), n, document.createTextNode(' '), run), out); view.appendChild(card);
+    var demo = el('div', null, 'card'), clr = el('button', 'ซ่อนเอกสารตัวอย่าง', 'secondary', { type: 'button' }), dm = el('span', null, 'muted', { role: 'status' });
+    add(demo, el('h2', 'เอกสารตัวอย่าง'), el('div', 'ซ่อนเอกสารที่ชื่อขึ้นต้น [ตัวอย่างทดสอบ] (ไม่ลบข้อมูล)', 'muted'), add(el('div', null, 'actions'), clr, dm));
+    clr.addEventListener('click', function () {
+      guard(clr, function () { return callApi('spike.demo.clear').then(function (r) { if (!r.ok) { reportFail(r); return; } dm.textContent = 'ซ่อนแล้ว ' + r.data.hidden + ' ฉบับ'; }); });
+    });
+    view.appendChild(demo);
     run.addEventListener('click', function () {
       var count = Math.max(1, Math.min(200, parseInt(n.value, 10) || 50)), runId = newRequestId();
       guard(run, function () {
