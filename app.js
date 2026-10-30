@@ -77,7 +77,7 @@
   var stats = { busyRetries: 0 }, MAX_BUSY_RETRIES = 8;
   /* คำสั่งที่แก้ข้อมูลและกันบันทึกซ้ำด้วย request_id (สร้างครั้งเดียวต่อการกระทำ ใช้ซ้ำเมื่อลองใหม่) */
   var WRITE_ACTIONS = ['users.upsert', 'users.set_active', 'users.grant_role', 'users.revoke_role', 'workflow.transition', 'attachments.remove', 'config.docnumber.update',
-                       'm1.save', 'm1.followup.add', 'm1.review.save', 'spike.demo.clear'];
+                       'm1.save', 'm1.followup.add', 'm1.review.save', 'spike.demo.clear', 'users.update_me', 'join.rotate', 'join.off'];
   function newRequestId() {
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
   }
@@ -132,10 +132,13 @@
    * ลิงก์ระบบมักถูกส่งในกลุ่ม LINE: เปิดจาก LINE → พาไปเบราว์เซอร์ของเครื่องให้เอง (openExternalBrowser=1 ของ LINE) · แอปอื่นบอกวิธีเปิด
    * คืน true = หยุด ไม่ต้องแสดงปุ่ม Google
    */
-  function inAppBrowserBlocked() {
+  function inAppKind() {
     var ua = navigator.userAgent || '';
-    var isLine = / Line\//i.test(ua), isOther = /FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
-    if (!isLine && !isOther) return false;
+    return / Line\//i.test(ua) ? 'line' : /FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua) ? 'other' : null;
+  }
+  function inAppBrowserBlocked() {
+    var kind = inAppKind(), isLine = kind === 'line';
+    if (!kind) return false;
     if (isLine && !/[?&]openExternalBrowser=1/.test(location.search)) {
       var u = new URL(location.href); u.searchParams.set('openExternalBrowser', '1'); location.replace(u.toString());
     }
@@ -143,6 +146,29 @@
     add(box, el('div', 'เปิดในแอปแชตเข้าสู่ระบบไม่ได้ — กดเมนู ⋮ หรือ ⋯ แล้วเลือก "เปิดในเบราว์เซอร์" (Chrome/Safari)', 'notice'));
     return true;
   }
+
+  /**
+   * ลิงก์ลงทะเบียน ...?j=<รหัส> — จำไว้ในแท็บนี้ แล้วลบออกจากแถบที่อยู่ (ไม่ติดไปกับภาพหน้าจอ/การแชร์ต่อ)
+   * เปิดจากแอปแชตไม่ลบ เพราะต้องส่งต่อไปเบราว์เซอร์ของเครื่องพร้อมรหัส
+   */
+  var joinCode = (function () {
+    var m = /[?&]j=([0-9a-f]{8,64})(?:&|$)/i.exec(location.search), code = m ? m[1].toLowerCase() : null;
+    try { if (code) sessionStorage.setItem('medsup.join', code); else code = sessionStorage.getItem('medsup.join'); } catch (e) { /* ข้าม */ }
+    if (m && !inAppKind() && window.history && history.replaceState) {
+      var u = new URL(location.href); u.searchParams.delete('j'); u.searchParams.delete('openExternalBrowser');
+      history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+    }
+    return code;
+  })();
+  var LOGIN_HINT = 'ครั้งแรก เปิดจากลิงก์ลงทะเบียนที่ได้จากงานพัสดุ';
+  function forgetJoinCode() { joinCode = null; try { sessionStorage.removeItem('medsup.join'); } catch (e) { /* ข้าม */ } }
+
+  function dataList(id, values) {
+    var dl = el('datalist', null, '', { id: id });
+    values.forEach(function (v) { var o = document.createElement('option'); o.value = v; dl.appendChild(o); });
+    return dl;
+  }
+  var POSITIONS = ['พยาบาลวิชาชีพ', 'พยาบาลเทคนิค', 'ผู้ช่วยพยาบาล', 'พนักงานช่วยการพยาบาล', 'นักวิชาการพัสดุ', 'เจ้าพนักงานพัสดุ', 'เจ้าพนักงานธุรการ'];
 
   window.MedsupInitGoogle = function () {
     if (inAppBrowserBlocked()) return;
@@ -156,11 +182,66 @@
 
   function onCredential(resp) {
     $('login-result').textContent = 'กำลังตรวจสอบ...'; $('login-result').className = '';
-    callApi('auth.login', { id_token: resp.credential }).then(function (r) {
-      if (!r.ok) { $('login-result').textContent = errText(r); $('login-result').className = 'fail'; return; }
-      session = r.data.session; me = r.data.profile;
-      $('login-result').textContent = '';
-      enterApp();
+    callApi('auth.login', { id_token: resp.credential, join_code: joinCode || undefined }).then(function (r) {
+      if (!r.ok) {
+        if (r.code === 'JOIN_CODE_INVALID') forgetJoinCode();
+        $('login-result').textContent = errText(r); $('login-result').className = 'fail'; return;
+      }
+      if (r.data.need_profile) { $('login-result').textContent = ''; joinForm(r.data); return; }
+      startSession(r.data);
+    });
+  }
+  function startSession(data) {
+    session = data.session; me = data.profile; forgetJoinCode();
+    $('login-result').textContent = '';
+    if ($('login-area').querySelector('form.joinform')) { clear($('login-area')); window.MedsupInitGoogle(); }   // ออกจากระบบแล้วต้องเห็นปุ่ม Google ไม่ใช่ฟอร์มเดิม
+    enterApp();
+  }
+
+  /** ลงทะเบียนครั้งแรก (มาจากลิงก์ลงทะเบียน) — กรอก 3 ช่อง ครั้งเดียว แล้วใช้งานได้ทันที */
+  function joinForm(d) {
+    var view = $('login-view'), area = clear($('login-area'));
+    view.querySelector('h2').textContent = 'ลงทะเบียนครั้งแรก';
+    view.querySelector('p').textContent = d.email;
+    var byName = {}; d.departments.forEach(function (x) { byName[x.name] = x; });
+    var form = el('form', null, 'joinform', { autocomplete: 'off', novalidate: 'novalidate' }), inputs = {}, errs = {};
+    function f(key, label, input) {
+      input.id = 'join-' + key; inputs[key] = input; errs[key] = el('div', null, 'ferr', { id: 'join-e-' + key });
+      input.setAttribute('aria-describedby', errs[key].id); input.required = true;
+      input.addEventListener('input', function () { errs[key].textContent = ''; input.removeAttribute('aria-invalid'); });
+      return add(el('div', null, 'f'), el('label', label, '', { for: input.id }), input, errs[key]);
+    }
+    var name = el('input', null, '', { type: 'text', maxlength: '200', autocomplete: 'name' }); name.value = d.suggested_name || '';
+    var pos = el('input', null, '', { type: 'text', maxlength: '200', list: 'dl-join-pos' });
+    var dept = el('input', null, '', { type: 'text', maxlength: '200', list: 'dl-join-dept', placeholder: 'พิมพ์ชื่อหอ/หน่วยงานแล้วเลือก' });
+    var btn = el('button', 'เริ่มใช้งาน', '', { type: 'submit' });
+    add(form, f('full_name', 'ชื่อ-สกุล', name), f('position', 'ตำแหน่ง', pos), f('department_id', 'หน่วยงาน', dept),
+        dataList('dl-join-pos', POSITIONS), dataList('dl-join-dept', d.departments.map(function (x) { return x.name; })),
+        add(el('div', null, 'actions'), btn));
+    area.appendChild(form);
+    name.focus();
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var v = { full_name: name.value.trim(), position: pos.value.trim(), department_id: '' }, bad = {};
+      var dn = dept.value.trim(); if (byName[dn]) v.department_id = byName[dn].id;
+      if (!v.full_name) bad.full_name = 'ต้องกรอก';
+      if (!v.position) bad.position = 'ต้องกรอก';
+      if (!dn) bad.department_id = 'ต้องกรอก'; else if (!v.department_id) bad.department_id = 'เลือกจากรายการ';
+      Object.keys(errs).forEach(function (k) { errs[k].textContent = bad[k] || ''; if (bad[k]) inputs[k].setAttribute('aria-invalid', 'true'); });
+      if (Object.keys(bad).length) { inputs[Object.keys(bad)[0]].focus(); return; }
+      guard(btn, function () {
+        v.reg_token = d.reg_token;
+        return callApi('auth.register', v).then(function (r) {
+          if (r.ok) { startSession(r.data); return; }
+          if (r.fields) Object.keys(r.fields).forEach(function (k) { if (errs[k]) { errs[k].textContent = fieldText(r.fields[k]); inputs[k].setAttribute('aria-invalid', 'true'); } });
+          $('login-result').textContent = errText(r); $('login-result').className = 'fail';
+          if (['JOIN_EXPIRED', 'JOIN_CODE_INVALID', 'JOIN_PAUSED', 'ACCOUNT_DISABLED'].indexOf(r.code) >= 0) {
+            if (r.code !== 'JOIN_EXPIRED') forgetJoinCode();
+            view.querySelector('h2').textContent = 'เข้าสู่ระบบด้วยบัญชี Google'; view.querySelector('p').textContent = '';
+            window.MedsupInitGoogle();
+          }
+        });
+      });
     });
   }
 
@@ -169,6 +250,8 @@
     Object.keys(masterCache).forEach(function (k) { delete masterCache[k]; });
     ['who', 'logout', 'nav', 'view'].forEach(function (id) { $(id).classList.add('hidden'); });
     $('login-view').classList.remove('hidden');
+    $('login-view').querySelector('h2').textContent = 'เข้าสู่ระบบด้วยบัญชี Google';
+    $('login-view').querySelector('p').textContent = LOGIN_HINT;
     $('login-result').textContent = msg || ''; $('login-result').className = msg ? 'fail' : '';
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   }
@@ -182,7 +265,7 @@
   function enterApp() {
     $('login-view').classList.add('hidden');
     var who = clear($('who'));
-    add(who, el('b', me.full_name), me.position ? el('span', ' · ' + me.position) : null, el('br'), el('span', me.email));
+    add(who, add(el('a', null, 'who-link', { href: '#/me', title: 'แก้ข้อมูลของฉัน' }), el('b', me.full_name), me.position ? el('span', ' · ' + me.position) : null), el('br'), el('span', me.email));
     ['who', 'logout', 'nav', 'view'].forEach(function (id) { $(id).classList.remove('hidden'); });
     buildNav();
     if (!location.hash) location.hash = '#/';
@@ -195,6 +278,7 @@
     { path: 'report', label: 'แจ้งปัญหา', roles: ['USER', 'OFFICER'], render: pageReportForm },
     { path: 'documents', label: 'เอกสาร', render: pageDocuments },
     { path: 'print', label: 'พิมพ์', nav: false, render: pagePrint },
+    { path: 'me', label: 'ข้อมูลของฉัน', nav: false, render: pageMe },
     { path: 'master', label: 'ข้อมูลหลัก', render: pageMaster },
     { path: 'users', label: 'ผู้ใช้', roles: ['ADMIN'], render: pageUsers },
     { path: 'settings', label: 'ตั้งค่า', roles: ['ADMIN'], render: pageSettings },
@@ -262,6 +346,12 @@
         var ow = add(el('div', null, 'notice', { role: 'alert' }), document.createTextNode('ยังไม่มีเจ้าหน้าที่พัสดุ (OFFICER) — รายงานที่ส่งมาจะไม่มีผู้รับเรื่อง · '), el('a', 'ให้บทบาทที่เมนูผู้ใช้', '', { href: '#/users' }));
         view.appendChild(ow);
       }
+      (d.admin && d.admin.join_alerts || []).forEach(function (a) {
+        var t = a.kind === 'JOIN_PAUSED' ? 'ลิงก์ลงทะเบียนหยุดรับเอง เพราะมีคนสมัครถี่ผิดปกติ — เปลี่ยนลิงก์ที่เมนูผู้ใช้'
+          : a.kind === 'JOIN_BURST' ? 'มีคนสมัครผ่านลิงก์ ' + a.n + ' คนใน 1 ชั่วโมง — ถ้าไม่ได้เพิ่งประกาศลิงก์ ให้เปลี่ยนลิงก์'
+          : a.kind === 'MANY_MOVES' ? 'ย้ายหน่วยงานบ่อย (3 ครั้งขึ้นไปใน 30 วัน): ' + (a.names || []).join(', ') : null;
+        if (t) view.appendChild(add(el('div', null, 'notice', { role: 'alert' }), document.createTextNode(t + ' · '), el('a', 'ไปเมนูผู้ใช้', '', { href: '#/users' })));
+      });
       if (d.admin && d.admin.backup && d.admin.backup.warn) {
         var W = { never: 'ยังไม่เคยสำรองข้อมูลอัตโนมัติ — ติดตั้งตัวตั้งเวลาตามคู่มือผู้ดูแลระบบ (docs/ADMIN_GUIDE.md)', failed: 'การสำรองข้อมูลครั้งล่าสุดล้มเหลว — ตรวจสอบโดยเร็ว', stale: 'ไม่มีการสำรองข้อมูลสำเร็จเกิน 2 วัน — ตรวจสอบตัวตั้งเวลา' };
         view.appendChild(el('div', W[d.admin.backup.warn] || 'ตรวจสอบการสำรองข้อมูล', 'notice', { role: 'alert' }));
@@ -1068,8 +1158,86 @@
   }
 
   /* ---------- ผู้ใช้ (ADMIN) ---------- */
+  /** ลิงก์ลงทะเบียน: ส่งลิงก์เดียวในกลุ่มไลน์ คนในหอสมัครเองได้ (ได้บทบาท USER เท่านั้น) */
+  function joinCard(view, alive) {
+    var card = add(el('div', null, 'card'), el('h2', 'ลิงก์ลงทะเบียน')), body = el('div'); card.appendChild(body); view.appendChild(card);
+    function linkOf(code) { return location.origin + location.pathname + '?j=' + code; }
+    function run(btn, action, ask) {
+      if (ask && !window.confirm(ask)) return;
+      guard(btn, function () { return callApi(action, {}).then(function (r) { if (!r.ok) { reportFail(r); return; } toast('บันทึกแล้ว'); show(r.data); }); });
+    }
+    function show(st) {
+      clear(body);
+      if (!st.code) {
+        var on = el('button', 'เปิดรับลงทะเบียน', '', { type: 'button' });
+        on.addEventListener('click', function () { run(on, 'join.rotate'); });
+        add(body, el('p', 'ยังไม่เปิด — ตอนนี้ต้องเพิ่มผู้ใช้ทีละคนด้านล่าง', 'muted'), on);
+        return;
+      }
+      if (st.paused_at) body.appendChild(el('div', 'หยุดรับเอง เพราะมีคนสมัครถี่ผิดปกติ — กด "เปลี่ยนลิงก์"', 'notice', { role: 'alert' }));
+      var link = el('input', null, 'joinlink', { type: 'text', readonly: 'readonly', 'aria-label': 'ลิงก์ลงทะเบียน' }); link.value = linkOf(st.code);
+      var copy = el('button', 'คัดลอก', '', { type: 'button' }), rot = el('button', 'เปลี่ยนลิงก์', 'secondary', { type: 'button' }), off = el('button', 'ปิดรับ', 'danger', { type: 'button' });
+      copy.addEventListener('click', function () {
+        link.select();
+        var done = function () { toast('คัดลอกลิงก์แล้ว'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link.value).then(done, function () { document.execCommand('copy'); done(); });
+        else { document.execCommand('copy'); done(); }
+      });
+      rot.addEventListener('click', function () { run(rot, 'join.rotate', 'เปลี่ยนลิงก์? ลิงก์เดิมจะใช้ไม่ได้ทันที (คนที่สมัครแล้วใช้ต่อได้)'); });
+      off.addEventListener('click', function () { run(off, 'join.off', 'ปิดรับลงทะเบียนด้วยลิงก์? (คนที่สมัครแล้วใช้ต่อได้)'); });
+      add(body, add(el('div', null, 'joinrow'), link, copy),
+          el('p', 'สมัคร 7 วันล่าสุด ' + st.joins_7d + ' คน · ทั้งหมด ' + st.joins_total + ' คน · ได้บทบาท USER เท่านั้น', 'muted'),
+          add(el('div', null, 'actions'), rot, off));
+    }
+    callApi('join.status').then(function (r) { if (!alive()) return; if (!r.ok) { body.appendChild(el('span', errText(r), 'fail')); return; } show(r.data); });
+  }
+
+  /** ข้อมูลของฉัน: แก้ชื่อ · ตำแหน่ง · ย้ายหน่วยงาน (ย้ายหอแล้วเห็นเอกสารของหอใหม่ เอกสารเดิมยังอยู่กับหอเดิม) */
+  function pageMe(view, args, alive) {
+    pageTitle(view, 'ข้อมูลของฉัน', me.email);
+    var box = loading(view);
+    loadMaster('departments').then(function (r) {
+      if (!alive()) return; box.remove();
+      if (!r.ok) { add(view, add(el('div', null, 'card'), el('span', errText(r), 'fail'))); return; }
+      var depts = r.data.rows.filter(function (x) { return x.is_active !== false; }), byName = {}, nameOf = {};
+      depts.forEach(function (x) { byName[x.name] = x; nameOf[x.id] = x.name; });
+      var form = el('form', null, 'card joinform', { autocomplete: 'off', novalidate: 'novalidate' }), inputs = {}, errs = {};
+      function f(key, label, input, value) {
+        input.id = 'me-' + key; input.value = value || ''; inputs[key] = input; errs[key] = el('div', null, 'ferr');
+        input.addEventListener('input', function () { errs[key].textContent = ''; input.removeAttribute('aria-invalid'); });
+        return add(el('div', null, 'f'), el('label', label, '', { for: input.id }), input, errs[key]);
+      }
+      var btn = el('button', 'บันทึก', '', { type: 'submit' });
+      add(form, f('full_name', 'ชื่อ-สกุล', el('input', null, '', { type: 'text', maxlength: '200' }), me.full_name),
+          f('position', 'ตำแหน่ง', el('input', null, '', { type: 'text', maxlength: '200', list: 'dl-me-pos' }), me.position),
+          f('department_id', 'หน่วยงาน', el('input', null, '', { type: 'text', maxlength: '200', list: 'dl-me-dept' }), nameOf[me.department_id]),
+          dataList('dl-me-pos', POSITIONS), dataList('dl-me-dept', depts.map(function (x) { return x.name; })),
+          add(el('div', null, 'actions'), btn));
+      view.appendChild(form);
+      form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var v = { full_name: inputs.full_name.value.trim(), position: inputs.position.value.trim() }, bad = {};
+        var dn = inputs.department_id.value.trim();
+        if (byName[dn]) v.department_id = byName[dn].id; else bad.department_id = dn ? 'เลือกจากรายการ' : 'ต้องกรอก';
+        if (!v.full_name) bad.full_name = 'ต้องกรอก';
+        if (!v.position) bad.position = 'ต้องกรอก';
+        Object.keys(errs).forEach(function (k) { errs[k].textContent = bad[k] || ''; if (bad[k]) inputs[k].setAttribute('aria-invalid', 'true'); });
+        if (Object.keys(bad).length) return;
+        var moving = v.department_id !== me.department_id && me.department_id;
+        if (moving && !window.confirm('ย้ายไป "' + dn + '"? จะเห็นเอกสารของหน่วยงานใหม่แทนหน่วยงานเดิม')) return;
+        guard(btn, function () {
+          return callApi('users.update_me', v).then(function (r) {
+            if (!r.ok) { reportFail(r); return; }
+            me = r.data; toast('บันทึกแล้ว'); enterApp();
+          });
+        });
+      });
+    });
+  }
+
   function pageUsers(view, args, alive) {
-    pageTitle(view, 'จัดการผู้ใช้', 'เพิ่มผู้ใช้ด้วยอีเมล Google ของเขา แล้วกำหนดบทบาท ผู้ที่ไม่อยู่ในรายชื่อจะเข้าสู่ระบบไม่ได้');
+    pageTitle(view, 'จัดการผู้ใช้');
+    joinCard(view, alive);
     var card = el('div', null, 'card'), form = el('form', null, '', { autocomplete: 'off' }), row = el('div', null, 'row');
     function field(label, input, errId) { var d = el('div'), l = el('label', label); input.id = 'u-' + errId; l.setAttribute('for', input.id); add(d, l, input, el('div', null, 'fail', { id: 'ue-' + errId })); return d; }
     var email = el('input', null, '', { type: 'email', placeholder: 'name@gmail.com' }), fname = el('input', null, '', { type: 'text' }), pos = el('input', null, '', { type: 'text' });
