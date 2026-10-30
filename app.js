@@ -127,7 +127,25 @@
   function reportFail(r) { toast(errText(r) + (r.fields ? ' — ' + describeFields(r.fields) : ''), true); }
 
   /* ---------- เข้าสู่ระบบ ---------- */
+  /**
+   * Google ไม่ให้เข้าสู่ระบบในเบราว์เซอร์ที่ฝังในแอปแชต (LINE/Facebook/Messenger/Instagram) — ขึ้น "disallowed_useragent"
+   * ลิงก์ระบบมักถูกส่งในกลุ่ม LINE: เปิดจาก LINE → พาไปเบราว์เซอร์ของเครื่องให้เอง (openExternalBrowser=1 ของ LINE) · แอปอื่นบอกวิธีเปิด
+   * คืน true = หยุด ไม่ต้องแสดงปุ่ม Google
+   */
+  function inAppBrowserBlocked() {
+    var ua = navigator.userAgent || '';
+    var isLine = / Line\//i.test(ua), isOther = /FBAN|FBAV|FB_IAB|Messenger|Instagram/i.test(ua);
+    if (!isLine && !isOther) return false;
+    if (isLine && !/[?&]openExternalBrowser=1/.test(location.search)) {
+      var u = new URL(location.href); u.searchParams.set('openExternalBrowser', '1'); location.replace(u.toString());
+    }
+    var box = $('login-area'); clear(box);
+    add(box, el('div', 'เปิดในแอปแชตเข้าสู่ระบบไม่ได้ — กดเมนู ⋮ หรือ ⋯ แล้วเลือก "เปิดในเบราว์เซอร์" (Chrome/Safari)', 'notice'));
+    return true;
+  }
+
   window.MedsupInitGoogle = function () {
+    if (inAppBrowserBlocked()) return;
     if (!CFG.GOOGLE_CLIENT_ID) { $('login-area').textContent = 'ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID'; return; }
     try {
       google.accounts.id.initialize({ client_id: CFG.GOOGLE_CLIENT_ID, callback: onCredential });
@@ -466,7 +484,11 @@
   }
 
   /* ---------- ไฟล์แนบ ---------- */
-  var ALLOWED_EXT = ['pdf', 'jpg', 'jpeg', 'png'], MAX_FILE = 10 * 1024 * 1024;
+  var ALLOWED_EXT = ['pdf', 'jpg', 'jpeg', 'png'], MAX_FILE = 10 * 1024 * 1024, MAX_PHOTO_RAW = 30 * 1024 * 1024;
+  var PHOTO = { MAX_EDGE: 2000, QUALITY: 0.85, SHRINK_ABOVE: 800 * 1024 };
+  function isPhoto(name) { return /\.(jpe?g|png)$/i.test(name); }
+  /** ขนาดเกินก่อนส่ง? รูปถ่ายรับไฟล์ดิบได้ใหญ่กว่า เพราะจะถูกย่อก่อนส่ง */
+  function tooBig(file) { return file.size > (isPhoto(file.name) ? MAX_PHOTO_RAW : MAX_FILE); }
   function readBase64(file) {
     return new Promise(function (resolve, reject) {
       var fr = new FileReader();
@@ -476,22 +498,50 @@
     });
   }
 
+  /**
+   * รูปถ่ายจากมือถือ (3–8 MB) ย่อเหลือด้านยาว 2000 px JPEG ก่อนส่ง — เล็กลงราว 5–10 เท่า ยังอ่านฉลาก/Lot ได้
+   * ลดพื้นที่ Drive (เต็มแล้วแนบไม่ได้ทั้งระบบ) และส่งเร็วขึ้นบนเน็ตหอผู้ป่วย · ย่อไม่ได้/ไม่เล็กลง → ส่งไฟล์เดิม
+   * คืน { name, b64 }
+   */
+  function prepareUpload(file) {
+    if (!isPhoto(file.name) || file.size <= PHOTO.SHRINK_ABOVE || !window.URL || !document.createElement('canvas').toBlob) {
+      return readBase64(file).then(function (b64) { return { name: file.name, b64: b64 }; });
+    }
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file), img = new Image();
+      function original() { URL.revokeObjectURL(url); readBase64(file).then(function (b64) { resolve({ name: file.name, b64: b64 }); }, function () { resolve(null); }); }
+      img.onerror = original;
+      img.onload = function () {
+        var k = Math.min(1, PHOTO.MAX_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (blob) {
+          if (!blob || blob.size >= file.size) return original();
+          URL.revokeObjectURL(url);
+          var name = file.name.replace(/\.(jpe?g|png)$/i, '.jpg');
+          readBase64(blob).then(function (b64) { resolve({ name: name, b64: b64 }); }, original);
+        }, 'image/jpeg', PHOTO.QUALITY);
+      };
+      img.src = url;
+    }).then(function (r) { if (!r) throw new Error('อ่านไฟล์ไม่สำเร็จ'); return r; });
+  }
+
   /** ไฟล์หลักฐานถูกเปิดดูได้หลายคน — ข้อมูลผู้ป่วยในรูป (ชื่อ, HN, สติกเกอร์ป้ายข้อมือ) ต้องไม่อยู่ในไฟล์ (PDPA) */
   function privacyNote() { return el('div', 'ถ่ายเฉพาะตัววัสดุ/ฉลาก/Lot — ห้ามมีชื่อ, HN หรือหน้าผู้ป่วยในภาพ', 'note-warn'); }
 
   function uploadBox(docId, refresh) {
-    var box = el('div'); add(box, el('h3', 'แนบไฟล์'), el('div', 'รับ PDF, JPG, PNG ขนาดไม่เกิน 10 MB ต่อไฟล์ · เลือกได้หลายไฟล์ · ไฟล์ที่ล้มเหลวลองใหม่ได้ทีละไฟล์', 'muted'), privacyNote());
+    var box = el('div'); add(box, el('h3', 'แนบไฟล์'), el('div', 'รูปถ่าย (ระบบย่อให้) หรือ PDF ไม่เกิน 10 MB · เลือกได้หลายไฟล์', 'muted'), privacyNote());
     var input = el('input', null, '', { type: 'file', multiple: 'multiple', accept: '.pdf,.jpg,.jpeg,.png', 'aria-label': 'เลือกไฟล์แนบ' });
     var list = el('div'), anyOk = false, retryable = 0;
     add(box, add(el('p'), input), list);
     function uploadOne(file, status, retryBtn) {
       var ext = (file.name.split('.').pop() || '').toLowerCase();
       if (ALLOWED_EXT.indexOf(ext) < 0) { status.textContent = 'ชนิดไฟล์ไม่รองรับ'; status.className = 'fail'; return Promise.resolve(); }
-      if (file.size > MAX_FILE) { status.textContent = 'ไฟล์ใหญ่เกิน 10 MB'; status.className = 'fail'; return Promise.resolve(); }
+      if (tooBig(file)) { status.textContent = 'ไฟล์ใหญ่เกินกำหนด'; status.className = 'fail'; return Promise.resolve(); }
       if (file.size === 0) { status.textContent = 'ไฟล์ว่าง'; status.className = 'fail'; return Promise.resolve(); }
       status.textContent = 'กำลังอัปโหลด...'; status.className = 'muted'; retryBtn.classList.add('hidden');
-      return readBase64(file).then(function (b64) {
-        return callApi('attachments.upload', { document_id: docId, filename: file.name, data_base64: b64 }, { timeout: 180000 });
+      return prepareUpload(file).then(function (f) {
+        return callApi('attachments.upload', { document_id: docId, filename: f.name, data_base64: f.b64 }, { timeout: 180000 });
       }).then(function (r) {
         if (!r.ok) {
           var why = r.fields ? Object.keys(r.fields).map(function (k) { return fieldText(r.fields[k]); }).join(', ') : '';
@@ -657,13 +707,13 @@
 
     var fileIn = el('input', null, '', { type: 'file', multiple: 'multiple', accept: '.pdf,.jpg,.jpeg,.png', id: 'm1-files' });
     var fileList = el('div', null, 'muted');
-    add(sec('ไฟล์หลักฐาน (ถ้ามี)'), add(el('div', null, 'f'), el('label', 'รูปถ่าย/เอกสาร PDF, JPG, PNG ไม่เกิน 10 MB ต่อไฟล์', '', { for: 'm1-files' }), privacyNote(), fileIn, fileList));
+    add(sec('ไฟล์หลักฐาน (ถ้ามี)'), add(el('div', null, 'f'), el('label', 'รูปถ่าย (ระบบย่อให้) หรือ PDF ไม่เกิน 10 MB', '', { for: 'm1-files' }), privacyNote(), fileIn, fileList));
     function showFiles() { fileList.textContent = st.files.length ? 'รอแนบ: ' + st.files.map(function (f) { return f.name; }).join(', ') : ''; }
     fileIn.addEventListener('change', function () {
       [].slice.call(fileIn.files).forEach(function (f) {
         var ext = (f.name.split('.').pop() || '').toLowerCase();
         if (ALLOWED_EXT.indexOf(ext) < 0) { toast(f.name + ': ชนิดไฟล์ไม่รองรับ', true); return; }
-        if (f.size > MAX_FILE) { toast(f.name + ': ใหญ่เกิน 10 MB', true); return; }
+        if (tooBig(f)) { toast(f.name + ': ไฟล์ใหญ่เกินกำหนด', true); return; }
         if (f.size === 0) { toast(f.name + ': ไฟล์ว่าง', true); return; }
         st.files.push(f);
       });
@@ -777,8 +827,8 @@
       st.files.slice().forEach(function (f) {
         chain = chain.then(function () {
           fileList.textContent = 'กำลังแนบ ' + f.name + ' ...';
-          return readBase64(f).then(function (b64) {
-            return callApi('attachments.upload', { document_id: st.docId, filename: f.name, data_base64: b64 }, { timeout: 180000 });
+          return prepareUpload(f).then(function (x) {
+            return callApi('attachments.upload', { document_id: st.docId, filename: x.name, data_base64: x.b64 }, { timeout: 180000 });
           }).then(function (r) {
             if (r.ok) st.files.splice(st.files.indexOf(f), 1);
             else failed.push(f.name + (r.fields ? ' (' + describeFields(r.fields) + ')' : ''));
