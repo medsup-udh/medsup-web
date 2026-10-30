@@ -476,8 +476,11 @@
     });
   }
 
+  /** ไฟล์หลักฐานถูกเปิดดูได้หลายคน — ข้อมูลผู้ป่วยในรูป (ชื่อ, HN, สติกเกอร์ป้ายข้อมือ) ต้องไม่อยู่ในไฟล์ (PDPA) */
+  function privacyNote() { return el('div', 'ถ่ายเฉพาะตัววัสดุ/ฉลาก/Lot — ห้ามมีชื่อ, HN หรือหน้าผู้ป่วยในภาพ', 'note-warn'); }
+
   function uploadBox(docId, refresh) {
-    var box = el('div'); add(box, el('h3', 'แนบไฟล์'), el('div', 'รับ PDF, JPG, PNG ขนาดไม่เกิน 10 MB ต่อไฟล์ · เลือกได้หลายไฟล์ · ไฟล์ที่ล้มเหลวลองใหม่ได้ทีละไฟล์', 'muted'));
+    var box = el('div'); add(box, el('h3', 'แนบไฟล์'), el('div', 'รับ PDF, JPG, PNG ขนาดไม่เกิน 10 MB ต่อไฟล์ · เลือกได้หลายไฟล์ · ไฟล์ที่ล้มเหลวลองใหม่ได้ทีละไฟล์', 'muted'), privacyNote());
     var input = el('input', null, '', { type: 'file', multiple: 'multiple', accept: '.pdf,.jpg,.jpeg,.png', 'aria-label': 'เลือกไฟล์แนบ' });
     var list = el('div'), anyOk = false, retryable = 0;
     add(box, add(el('p'), input), list);
@@ -654,7 +657,7 @@
 
     var fileIn = el('input', null, '', { type: 'file', multiple: 'multiple', accept: '.pdf,.jpg,.jpeg,.png', id: 'm1-files' });
     var fileList = el('div', null, 'muted');
-    add(sec('ไฟล์หลักฐาน (ถ้ามี)'), add(el('div', null, 'f'), el('label', 'รูปถ่าย/เอกสาร PDF, JPG, PNG ไม่เกิน 10 MB ต่อไฟล์', '', { for: 'm1-files' }), fileIn, fileList));
+    add(sec('ไฟล์หลักฐาน (ถ้ามี)'), add(el('div', null, 'f'), el('label', 'รูปถ่าย/เอกสาร PDF, JPG, PNG ไม่เกิน 10 MB ต่อไฟล์', '', { for: 'm1-files' }), privacyNote(), fileIn, fileList));
     function showFiles() { fileList.textContent = st.files.length ? 'รอแนบ: ' + st.files.map(function (f) { return f.name; }).join(', ') : ''; }
     fileIn.addEventListener('change', function () {
       [].slice.call(fileIn.files).forEach(function (f) {
