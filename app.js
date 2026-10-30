@@ -250,7 +250,15 @@
     });
   }
 
+  /** ร่างที่พิมพ์ค้างในแท็บ (ฟอร์มรายงาน/ใบประเมิน) ลบทิ้งตอนออกจากระบบ — คอมกลางของหอ คนถัดไปต้องไม่เห็นหรือส่งในนามคนก่อน */
+  function clearDrafts() {
+    try {
+      var ks = []; for (var i = 0; i < sessionStorage.length; i++) ks.push(sessionStorage.key(i));
+      ks.forEach(function (k) { if (/^(m1form|m2form):/.test(k)) sessionStorage.removeItem(k); });
+    } catch (e) { /* ไม่มีที่เก็บก็ไม่มีอะไรให้ลบ */ }
+  }
   function signedOut(msg) {
+    clearDrafts();
     session = null; me = null; rolesAvailable = []; viewToken++;
     Object.keys(masterCache).forEach(function (k) { delete masterCache[k]; });
     ['who', 'logout', 'nav', 'view'].forEach(function (id) { $(id).classList.add('hidden'); });
@@ -367,7 +375,7 @@
       (d.admin && d.admin.join_alerts || []).forEach(function (a) {
         var t = a.kind === 'JOIN_PAUSED' ? 'ลิงก์ลงทะเบียนหยุดรับเอง เพราะมีคนสมัครถี่ผิดปกติ — เปลี่ยนลิงก์ที่เมนูผู้ใช้'
           : a.kind === 'JOIN_BURST' ? 'มีคนสมัครผ่านลิงก์ ' + a.n + ' คนใน 1 ชั่วโมง — ถ้าไม่ได้เพิ่งประกาศลิงก์ ให้เปลี่ยนลิงก์'
-          : a.kind === 'MANY_MOVES' ? 'ย้ายหน่วยงานบ่อย (3 ครั้งขึ้นไปใน 30 วัน): ' + (a.names || []).join(', ') : null;
+          : a.kind === 'MANY_MOVES' ? 'ย้ายหน่วยงานบ่อย (2 ครั้งขึ้นไปใน 30 วัน): ' + (a.names || []).join(', ') : null;
         if (t) view.appendChild(add(el('div', null, 'notice', { role: 'alert' }), document.createTextNode(t + ' · '), el('a', 'ไปเมนูผู้ใช้', '', { href: '#/users' })));
       });
       if (d.admin && d.admin.backup && d.admin.backup.warn) {
@@ -777,7 +785,7 @@
     var rep = detail ? detail.module_data.report : null;
     var st = { docId: detail ? detail.document.id : null, version: rep ? rep.version : null, docVersion: detail ? detail.document.version : null,
                createRid: null, createSig: null, busy: false, files: [] };
-    var draftKey = 'm1form:' + (st.docId || 'new');
+    var draftKey = 'm1form:' + me.user_id + ':' + (st.docId || 'new');   // ผูกกับผู้ใช้ — คนอื่นในแท็บเดียวกันไม่ได้ร่างนี้
     var deptByName = {}, deptName = {}, itemByLabel = {}, itemById = {}, vendorByName = {};
     depts.forEach(function (x) { deptByName[x.name] = x; deptName[x.id] = x.name; });
     function itemLabel(it) { return it.name + ' · ' + it.code; }
@@ -1255,7 +1263,11 @@
       head.lastChild.appendChild(el('a', '← ประเมินวัสดุ', '', { href: '#/eval' }));
       view.appendChild(head);
       if (g.response) { view.appendChild(m2ResponseCard(g)); return; }
-      if (!g.can_submit) { view.appendChild(el('div', g.status === 'OPEN' ? 'ยังส่งใบนี้ไม่ได้' : 'รอบนี้ปิดแล้ว', 'card notice')); return; }
+      if (!g.can_submit) {
+        view.appendChild(el('div', g.moved_in_after_open ? 'คุณเลือกหน่วยงานนี้หลังรอบเปิด — ให้คนเดิมของหน่วยงานประเมิน หรือแจ้งพัสดุ'
+                                   : g.status === 'OPEN' ? 'ยังส่งใบนี้ไม่ได้' : 'รอบนี้ปิดแล้ว', 'card notice'));
+        return;
+      }
       view.appendChild(m2ScoreForm(g, function () { route(); }));
     });
   }
@@ -1290,7 +1302,7 @@
   }
 
   function m2ScoreForm(g, done) {
-    var key = 'm2form:' + g.assignment_id, saved = storeGet(key) || {};
+    var key = 'm2form:' + me.user_id + ':' + g.assignment_id, saved = storeGet(key) || {};
     var form = el('form', null, 'card scoreform', { novalidate: 'novalidate', autocomplete: 'off' }), picks = saved.picks || {}, errs = [];
     var summary = el('p', null, 'score-line', { 'aria-live': 'polite' });
     function persist() { storeSet(key, { picks: picks, suggestion: sug.value, verdict: verdict(), reason: why.value, name: nm.value, pos: ps.value }); }
@@ -1405,6 +1417,8 @@
       if (src) {
         var it = src.item_id ? itemById[src.item_id] : null;
         c.item.value = it && it.name === src.item_name ? itemLabel(it) : src.item_name;
+        // จำค่าเดิม: ถ้าไม่ได้แก้ช่อง ให้ส่งรหัสอ้างอิงเดิมกลับไป (กันรหัสวัสดุหายเมื่อชื่อในข้อมูลหลักถูกแก้ภายหลัง)
+        c.orig = { itemText: c.item.value, item_id: src.item_id, item_name: src.item_name, vendorText: src.vendor_text || '', vendor_id: src.vendor_id };
         c.vendor.value = src.vendor_text || ''; c.product.value = src.product_name || ''; c.reason.value = src.reason; c.tpl.value = src.template_id; c.fda.checked = !!src.fda_ok;
       }
       c.item.addEventListener('change', function () {   // เลือกวัสดุที่มีแบบประเมินเฉพาะ → เลือกแบบให้เอง (ยังเปลี่ยนได้)
@@ -1455,8 +1469,10 @@
       var p = { due_date: due.value || '', note: note.value.trim() };
       if (st.docId) { p.document_id = st.docId; p.version = st.version; }
       if (!locked) p.items = cards.map(function (c) {
-        var it = itemByLabel[c.item.value.trim()], v = vendorByName[c.vendor.value.trim()];
-        return { id: c.id || undefined, item_id: it ? it.id : '', item_name: it ? it.name : c.item.value.trim(), vendor_id: v ? v.id : '', vendor_text: c.vendor.value.trim(),
+        var it = itemByLabel[c.item.value.trim()], v = vendorByName[c.vendor.value.trim()], o = c.orig || {};
+        var keepItem = !it && o.item_id && c.item.value === o.itemText, keepVendor = !v && o.vendor_id && c.vendor.value.trim() === o.vendorText;
+        return { id: c.id || undefined, item_id: it ? it.id : keepItem ? o.item_id : '', item_name: it ? it.name : keepItem ? o.item_name : c.item.value.trim(),
+                 vendor_id: v ? v.id : keepVendor ? o.vendor_id : '', vendor_text: c.vendor.value.trim(),
                  product_name: c.product.value.trim(), reason: c.reason.value, template_id: c.tpl.value, fda_ok: c.fda.checked,
                  units: c.units.map(function (u) { var dd = deptByName[u.dept.value.trim()]; return { department_id: dd ? dd.id : (u.dept.value.trim() ? '?' + u.dept.value.trim() : ''), qty: u.qty.value === '' ? null : Number(u.qty.value) }; }) };
       });
@@ -1697,8 +1713,12 @@
   function pageMe(view, args, alive) {
     pageTitle(view, 'ข้อมูลของฉัน', me.email);
     var box = loading(view);
-    loadMaster('departments').then(function (r) {
+    // อ่านข้อมูลล่าสุดก่อน (ผู้ดูแลอาจแก้ให้ระหว่างที่เปิดค้างไว้) และส่งเฉพาะช่องที่เปลี่ยน — กันทับของผู้ดูแล
+    Promise.all([callApi('auth.whoami'), loadMaster('departments')]).then(function (res) {
       if (!alive()) return; box.remove();
+      if (!res[0].ok) { add(view, add(el('div', null, 'card'), el('span', errText(res[0]), 'fail'))); return; }
+      me = res[0].data;
+      var r = res[1];
       if (!r.ok) { add(view, add(el('div', null, 'card'), el('span', errText(r), 'fail'))); return; }
       var depts = r.data.rows.filter(function (x) { return x.is_active !== false; }), byName = {}, nameOf = {};
       depts.forEach(function (x) { byName[x.name] = x; nameOf[x.id] = x.name; });
@@ -1725,9 +1745,12 @@
         Object.keys(errs).forEach(function (k) { errs[k].textContent = bad[k] || ''; if (bad[k]) inputs[k].setAttribute('aria-invalid', 'true'); });
         if (Object.keys(bad).length) return;
         var moving = v.department_id !== me.department_id && me.department_id;
+        var changed = {};
+        Object.keys(v).forEach(function (k) { if (v[k] !== (me[k] || '')) changed[k] = v[k]; });
+        if (!Object.keys(changed).length) { toast('ไม่มีอะไรเปลี่ยน'); return; }
         if (moving && !window.confirm('ย้ายไป "' + dn + '"? จะเห็นเอกสารของหน่วยงานใหม่แทนหน่วยงานเดิม')) return;
         guard(btn, function () {
-          return callApi('users.update_me', v).then(function (r) {
+          return callApi('users.update_me', changed).then(function (r) {
             if (!r.ok) { reportFail(r); return; }
             me = r.data; toast('บันทึกแล้ว'); enterApp();
           });
