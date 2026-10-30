@@ -82,7 +82,7 @@
   /* คำสั่งที่แก้ข้อมูลและกันบันทึกซ้ำด้วย request_id (สร้างครั้งเดียวต่อการกระทำ ใช้ซ้ำเมื่อลองใหม่) */
   var WRITE_ACTIONS = ['users.upsert', 'users.set_active', 'users.grant_role', 'users.revoke_role', 'workflow.transition', 'attachments.remove', 'config.docnumber.update',
                        'm1.save', 'm1.followup.add', 'm1.review.save', 'spike.demo.clear', 'users.update_me', 'join.rotate', 'join.off',
-                       'm2.save', 'm2.template.save', 'm2.response.submit', 'm2.response.reopen'];
+                       'm2.save', 'm2.template.save', 'm2.response.submit', 'm2.response.reopen', 'attachments.hide'];
   function newRequestId() {
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
   }
@@ -543,6 +543,18 @@
         var dl = el('button', 'ดาวน์โหลด', 'secondary small', { type: 'button' }); dl.addEventListener('click', function () { guard(dl, function () { return downloadAttachment(a); }); });
         add(act, dl);
         if (data.can_attach) { var rm = el('button', 'ลบ', 'danger small', { type: 'button' }); rm.style.marginLeft = '6px'; rm.addEventListener('click', function () { removeAttachment(rm, a, refresh); }); act.appendChild(rm); }
+        else if (hasRole('OFFICER')) {   // ไฟล์หลุดข้อมูลผู้ป่วยหลังส่งแล้ว — พัสดุซ่อนได้ (ต้องมีเหตุผล)
+          var hd = el('button', 'ซ่อน', 'danger small', { type: 'button', title: 'ซ่อนไฟล์ที่มีข้อมูลผู้ป่วย' }); hd.style.marginLeft = '6px';
+          hd.addEventListener('click', function () {
+            askComment('ซ่อนไฟล์ "' + a.original_filename + '" — เหตุผล (เช่น มีชื่อ/HN ผู้ป่วย)', function (text) {
+              return callApi('attachments.hide', { attachment_id: a.id, version: a.version, reason: text }).then(function (r) {
+                if (!r.ok) { reportFail(r); return false; }
+                toast('ซ่อนไฟล์แล้ว'); return refresh().then(function () { return true; });
+              });
+            });
+          });
+          act.appendChild(hd);
+        }
         add(row, el('td', a.original_filename), el('td', fmtBytes(a.file_size)), el('td', fmtDate(a.uploaded_at)), act);
         [].forEach.call(row.children, function (td, i) { if (ah[i]) td.setAttribute('data-label', ah[i]); }); tb.appendChild(row);
       });
