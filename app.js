@@ -1729,9 +1729,11 @@
         return add(el('div', null, 'f'), el('label', label, '', { for: input.id }), input, errs[key]);
       }
       var btn = el('button', 'บันทึก', '', { type: 'submit' });
+      // พัสดุ/ผู้ดูแลที่ไม่สังกัดหอ เว้นหน่วยงานได้ · ผู้ใช้ทั่วไปต้องมีหน่วยงาน (แจ้งปัญหา/ประเมินในนามหอ) · มีแล้วล้างไม่ได้ (Backend ไม่รับค่าว่าง)
+      var deptOptional = !me.department_id && me.roles.some(function (x) { return x !== 'USER'; });
       add(form, f('full_name', 'ชื่อ-สกุล', el('input', null, '', { type: 'text', maxlength: '200' }), me.full_name),
           f('position', 'ตำแหน่ง', el('input', null, '', { type: 'text', maxlength: '200', list: 'dl-me-pos' }), me.position),
-          f('department_id', 'หน่วยงาน', el('input', null, '', { type: 'text', maxlength: '200', list: 'dl-me-dept' }), nameOf[me.department_id]),
+          f('department_id', deptOptional ? 'หน่วยงาน (ไม่บังคับ)' : 'หน่วยงาน', el('input', null, '', { type: 'text', maxlength: '200', list: 'dl-me-dept' }), nameOf[me.department_id]),
           dataList('dl-me-pos', POSITIONS), dataList('dl-me-dept', depts.map(function (x) { return x.name; })),
           add(el('div', null, 'actions'), btn));
       view.appendChild(form);
@@ -1739,7 +1741,7 @@
         ev.preventDefault();
         var v = { full_name: inputs.full_name.value.trim(), position: inputs.position.value.trim() }, bad = {};
         var dn = inputs.department_id.value.trim();
-        if (byName[dn]) v.department_id = byName[dn].id; else bad.department_id = dn ? 'เลือกจากรายการ' : 'ต้องกรอก';
+        if (byName[dn]) v.department_id = byName[dn].id; else if (dn || !deptOptional) bad.department_id = dn ? 'เลือกจากรายการ' : 'ต้องกรอก';
         if (!v.full_name) bad.full_name = 'ต้องกรอก';
         if (!v.position) bad.position = 'ต้องกรอก';
         Object.keys(errs).forEach(function (k) { errs[k].textContent = bad[k] || ''; if (bad[k]) inputs[k].setAttribute('aria-invalid', 'true'); });
