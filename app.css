@@ -174,3 +174,25 @@ label.check { display:flex; align-items:center; gap:6px; color:var(--text); }
 .paper .p-crit { font-size:11pt; margin-top:8px; }
 .paper .p-notes { margin:2px 0 6px 1.2em; padding:0; }
 @media (max-width:640px) { .unitrow { grid-template-columns:1fr 90px; } .unitrow button { grid-column:1 / -1; justify-self:start; } .paper table.ptable { font-size:10pt; } }
+
+/* ---------- Menu 4 เบิกควบคุม ---------- */
+.m4form .m4-subject { background:var(--brand-soft); border-radius:10px; padding:8px 12px; margin:6px 0 2px; font-weight:600; word-break:break-word; }
+.m4form .lbl, .card.officer .lbl { font-size:15px; color:var(--muted); margin:10px 0 3px; }
+.card.officer input[type=text] { width:100%; }
+.m4-decision { display:flex; flex-wrap:wrap; gap:8px 18px; margin:2px 0 4px; }
+.m4-decision .chk { display:inline-flex; align-items:center; gap:6px; margin:0; font-size:16px; color:var(--text); min-height:40px; cursor:pointer; }
+.m4-decision input { width:20px; height:20px; }
+.paper.memo .memo-title { text-align:center; font-size:22pt; font-weight:700; }
+.paper.memo .memo-line { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 4px; margin:0 0 4px; }
+.paper.memo .memo-line b { font-size:14pt; }
+.paper.memo .memo-to { margin:10px 0 6px; }
+.paper.memo .memo-para { text-indent:2.5em; margin:6px 0; white-space:pre-wrap; word-break:break-word; }
+.paper.memo .memo-sig { margin:26px 0 0 45%; text-align:center; line-height:1.7; }
+.paper.memo .memo-endorse { margin:22px 0 0 45%; line-height:1.75; white-space:pre-wrap; }
+.paper.memo .memo-endorse > div:nth-last-child(-n+3) { text-align:center; }
+.paper.memo .sig-space { height:2.2em; }
+.paper.memo .memo-head { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; margin-bottom:10px; }
+.paper.memo .memo-head .memo-title { margin:0; }
+.paper.memo .stamp { justify-self:end; border:1px solid #000; padding:4px 10px; font-size:11pt; line-height:1.5; min-width:12em; }
+.paper.memo .stamp-h { font-weight:700; text-align:center; }
+@media (max-width:640px) { .paper.memo .memo-head { grid-template-columns:1fr; } .paper.memo .memo-head > div:first-child { display:none; } .paper.memo .stamp { justify-self:stretch; order:-1; } .paper.memo .memo-sig, .paper.memo .memo-endorse { margin-left:20%; } }

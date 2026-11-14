@@ -65,13 +65,18 @@
                     not_allowed_value: 'ค่าไม่ถูกต้อง', count_mismatch: 'จำนวนข้อไม่ตรง กรุณาโหลดหน้าใหม่', all_skipped: 'ต้องให้คะแนนอย่างน้อย 1 ข้อ',
                     invalid_score: 'คะแนนต้องเป็น 1–5', invalid: 'ไม่ถูกต้อง',
                     not_found: 'ไม่พบในรายการ (อาจถูกปิดใช้งาน)', invalid_phone: 'รูปแบบเบอร์โทรไม่ถูกต้อง', future_date: 'เป็นวันในอนาคตไม่ได้',
-                    not_allowed_value: 'ค่าไม่ถูกต้อง', pick_from_list: 'เลือกจากรายการ', too_short: 'สั้นเกินไป' };
+                    not_allowed_value: 'ค่าไม่ถูกต้อง', pick_from_list: 'เลือกจากรายการ', too_short: 'สั้นเกินไป',
+                    not_restricted: 'ไม่อยู่ในรายการที่ถูกจำกัด — เลือกจากรายการ' };
   function fieldText(code) { return FIELD_MSG[code] || 'ไม่ถูกต้อง'; }
   var FIELD_LABEL = { department_id: 'หน่วยงาน', phone: 'เบอร์โทรศัพท์', item_id: 'วัสดุ', item_name: 'วัสดุที่พบปัญหา', vendor_id: 'บริษัท', vendor_text: 'บริษัท/ยี่ห้อ',
                       problem_type: 'ประเภทปัญหา', problem_1: 'ปัญหาที่พบ ๓.๑', problem_2: '๓.๒', problem_other: '๓.๓ อื่นๆ', suggestion: 'ข้อเสนอแนะ',
                       reporter_name: 'ชื่อผู้รายงาน', reporter_position: 'ตำแหน่งผู้รายงาน', head_name: 'ชื่อหัวหน้าหน่วยงาน', head_position: 'ตำแหน่งหัวหน้าหน่วยงาน',
                       problem_found_date: 'วันที่พบปัญหา', lot_no: 'เลข Lot', expiry_date: 'วันหมดอายุ', review_result: 'ผลการตรวจสอบ', reply_to_unit: 'ผลแจ้งกลับหน่วยงาน',
-                      report: 'ข้อมูลรายงาน', comment: 'เหตุผล', note: 'บันทึก' };
+                      report: 'ข้อมูลรายงาน', comment: 'เหตุผล', note: 'บันทึก',
+                      unit_doc_no: 'ที่ (เลขหนังสือหน่วยงาน)', quantity: 'จำนวน', unit: 'หน่วยนับ', background: 'ต้นเรื่อง', facts: 'ข้อเท็จจริง',
+                      signer_name: 'ชื่อผู้ลงนาม', signer_position: 'ตำแหน่งผู้ลงนาม', signer_role: 'ตำแหน่งบริหาร', request: 'ข้อมูลบันทึก',
+                      decision: 'ผลพิจารณา', decision_to: 'แจ้ง/มอบ', decision_note: 'หมายเหตุ', ordered_by_name: 'ชื่อผู้สั่ง',
+                      ordered_by_position: 'ตำแหน่งผู้สั่ง', ordered_by_role: 'ตำแหน่งบริหารผู้สั่ง', codes: 'รหัสวัสดุ' };
   /** {ช่อง: รหัส} → "หน่วยงาน: ต้องกรอก, ..." */
   function describeFields(fields) {
     return Object.keys(fields || {}).map(function (k) { return (FIELD_LABEL[k] || k) + ': ' + fieldText(fields[k]); }).join(', ');
@@ -82,7 +87,8 @@
   /* คำสั่งที่แก้ข้อมูลและกันบันทึกซ้ำด้วย request_id (สร้างครั้งเดียวต่อการกระทำ ใช้ซ้ำเมื่อลองใหม่) */
   var WRITE_ACTIONS = ['users.upsert', 'users.set_active', 'users.grant_role', 'users.revoke_role', 'workflow.transition', 'attachments.remove', 'config.docnumber.update',
                        'm1.save', 'm1.followup.add', 'm1.review.save', 'spike.demo.clear', 'users.update_me', 'join.rotate', 'join.off',
-                       'm2.save', 'm2.template.save', 'm2.response.submit', 'm2.response.reopen', 'attachments.hide'];
+                       'm2.save', 'm2.template.save', 'm2.response.submit', 'm2.response.reopen', 'attachments.hide',
+                       'm4.save', 'm4.decision.save', 'm4.restricted.add', 'm4.restricted.remove'];
   function newRequestId() {
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
   }
@@ -254,7 +260,7 @@
   function clearDrafts() {
     try {
       var ks = []; for (var i = 0; i < sessionStorage.length; i++) ks.push(sessionStorage.key(i));
-      ks.forEach(function (k) { if (/^(m1form|m2form):/.test(k)) sessionStorage.removeItem(k); });
+      ks.forEach(function (k) { if (/^(m1form|m2form|m4form):/.test(k)) sessionStorage.removeItem(k); });
     } catch (e) { /* ไม่มีที่เก็บก็ไม่มีอะไรให้ลบ */ }
   }
   function signedOut(msg) {
@@ -294,6 +300,8 @@
     { path: 'round', label: 'รอบประเมิน', nav: false, roles: ['OFFICER'], render: pageRoundEdit },
     { path: 'evalprint', label: 'รายงานผลประเมิน', nav: false, roles: ['OFFICER'], render: pageEvalPrint },
     { path: 'templates', label: 'แบบประเมิน', nav: false, roles: ['OFFICER'], render: pageTemplates },
+    { path: 'restrict', label: 'เบิกควบคุม', roles: ['USER', 'OFFICER'], render: pageRestrictForm },
+    { path: 'restricted', label: 'รายการที่ถูกจำกัด', nav: false, roles: ['USER', 'OFFICER'], render: pageRestrictedList },
     { path: 'documents', label: 'เอกสาร', render: pageDocuments },
     { path: 'print', label: 'พิมพ์', nav: false, render: pagePrint },
     { path: 'me', label: 'ข้อมูลของฉัน', nav: false, render: pageMe },
@@ -498,7 +506,7 @@
 
   function renderDetail(view, data, refresh) {
     var d = data.document, md = data.module_data;
-    var isM1 = d.module === 'M1' && !!md, isM2 = d.module === 'M2' && !!md;
+    var isM1 = d.module === 'M1' && !!md, isM2 = d.module === 'M2' && !!md, isM4 = d.module === 'M4' && !!md;
     var head = el('div', null, 'card doc-part');
     add(head, el('h1', d.title), add(el('div'), badge(d.status), el('span', ' ' + (d.doc_no || '(ยังไม่มีเลขที่)') + (d.revision ? ' · แก้ไขครั้งที่ ' + d.revision : ''), 'muted')));
     var kv = el('dl', null, 'kv');
@@ -506,6 +514,12 @@
       add(kv, el('dt', 'หน่วยงาน'), el('dd', d.department_name || '-'),
           el('dt', 'ผู้รายงาน'), el('dd', (md.report && md.report.reporter_name) || d.requester_name || '-'));
       if (md.submitted_at || d.submitted_at) add(kv, el('dt', 'ส่งเมื่อ'), el('dd', fmtDate(md.submitted_at || d.submitted_at)));
+      if (md.received) add(kv, el('dt', 'รับเรื่อง'), el('dd', (md.received.by_name || '-') + ' · ' + fmtDate(md.received.at)));
+      if (d.closed_at) add(kv, el('dt', d.status === 'CANCELLED' ? 'ยกเลิกเมื่อ' : 'ปิดงานเมื่อ'), el('dd', fmtDate(d.closed_at)));
+    } else if (isM4) {
+      add(kv, el('dt', 'หน่วยงาน'), el('dd', d.department_name || '-'),
+          el('dt', 'ผู้ลงนาม'), el('dd', (md.request && md.request.signer_name) || '-'));
+      if (md.submitted_at) add(kv, el('dt', 'ส่งในระบบ'), el('dd', (md.submitted_by_name || '-') + ' · ' + fmtDate(md.submitted_at)));
       if (md.received) add(kv, el('dt', 'รับเรื่อง'), el('dd', (md.received.by_name || '-') + ' · ' + fmtDate(md.received.at)));
       if (d.closed_at) add(kv, el('dt', d.status === 'CANCELLED' ? 'ยกเลิกเมื่อ' : 'ปิดงานเมื่อ'), el('dd', fmtDate(d.closed_at)));
     } else {
@@ -517,19 +531,28 @@
     var acts = el('div', null, 'actions');
     if (isM1 && md.can_edit) acts.appendChild(el('a', 'แก้ไข', 'btn secondary', { href: '#/report/' + encodeURIComponent(d.id) }));
     if (isM2 && md.can_edit) acts.appendChild(el('a', 'แก้ไขรอบ', 'btn secondary', { href: '#/round/' + encodeURIComponent(d.id) }));
+    if (isM4 && md.can_edit) acts.appendChild(el('a', 'แก้ไข', 'btn secondary', { href: '#/restrict/' + encodeURIComponent(d.id) }));
     data.actions.forEach(function (a) {
-      if (isM1 && a.action === 'COMPLETE') return;   // ปิดงานทำในกล่องงานพัสดุ (ต้องบันทึกผลก่อน)
+      if ((isM1 || isM4) && a.action === 'COMPLETE') return;   // ปิดงานทำในกล่องงานพัสดุ (ต้องบันทึกผลก่อน)
       if (isM2 && a.action === 'OPEN') return;       // เปิดรอบทำในหน้าแก้ไขรอบ (บันทึกก่อนแล้วเปิด)
       var b = el('button', actionLabel(a.action), a.action === 'CANCEL' || a.action === 'REJECT' ? 'danger' : (a.action === 'RETURN' ? 'secondary' : ''), { type: 'button' });
       b.addEventListener('click', function () { runAction(b, d, a, refresh); });
       acts.appendChild(b);
     });
     if (isM1 && d.doc_no && md.report && d.status !== 'CANCELLED') acts.appendChild(el('a', 'พิมพ์ / PDF', 'btn secondary', { href: '#/print/' + encodeURIComponent(d.id) }));
+    if (isM4 && d.doc_no && md.request && d.status !== 'CANCELLED') acts.appendChild(el('a', 'พิมพ์บันทึก / PDF', 'btn secondary', { href: '#/print/' + encodeURIComponent(d.id) }));
     if (acts.childNodes.length) head.appendChild(acts);
-    if (isM1 && d.status === 'RETURNED' && md.can_edit) head.appendChild(el('div', 'พัสดุส่งกลับให้แก้ไข — ดูเหตุผลในประวัติด้านล่าง แก้แล้วกดส่งอีกครั้ง', 'notice'));
+    if ((isM1 || isM4) && d.status === 'RETURNED' && md.can_edit) head.appendChild(el('div', 'พัสดุส่งกลับให้แก้ไข — ดูเหตุผลในประวัติด้านล่าง แก้แล้วกดส่งอีกครั้ง', 'notice'));
+    if (isM4 && md.can_edit && md.restricted_ok === false) head.appendChild(el('div', 'วัสดุนี้ถูกเอาออกจากรายการที่ถูกจำกัดแล้ว — กดแก้ไขแล้วเลือกวัสดุใหม่ก่อนส่ง', 'notice', { role: 'alert' }));
     view.appendChild(head);
 
     if (isM2) m2RoundCards(view, d, md);
+    if (isM4) {
+      if (md.decision && d.status === 'COMPLETED') view.appendChild(m4DecisionCard(md.decision));
+      if (md.request) view.appendChild(m4MemoCard(d, md));
+      else view.appendChild(el('div', 'ไม่พบข้อมูลบันทึกของเอกสารนี้', 'card doc-part notice'));
+      if (md.officer) view.appendChild(m4OfficerCard(d, md, refresh));
+    }
     if (isM1) {
       if (md.reply && d.status === 'COMPLETED') {
         var rc = el('div', null, 'card doc-part reply');
@@ -945,7 +968,7 @@
         storeDel(draftKey);
         if (wasCreate) {
           var sig = st.createSig; st.createRid = null; st.createSig = null;
-          draftKey = 'm1form:' + st.docId;
+          draftKey = 'm1form:' + me.user_id + ':' + st.docId;
           back.setAttribute('href', '#/documents/' + encodeURIComponent(st.docId));
           try { history.replaceState(null, '', '#/report/' + encodeURIComponent(st.docId)); } catch (e) { /* ข้าม */ }
           /* กดซ้ำหลังเครือข่ายหลุด: ระบบคืนผลการสร้างครั้งแรก ถ้าระหว่างนั้นแก้ข้อความ ต้องบันทึกทับอีกครั้ง */
@@ -1109,14 +1132,15 @@
       var d = r.data.document, md = r.data.module_data;
       var bar = el('div', null, 'card no-print actions');
       add(bar, el('a', '← กลับ', '', { href: '#/documents/' + encodeURIComponent(d.id) }));
-      if (d.module !== 'M1' || !md || !md.report || !d.doc_no || d.status === 'CANCELLED') {
-        add(bar, el('span', d.status === 'CANCELLED' ? 'เอกสารนี้ถูกยกเลิกแล้ว — ไม่มีให้พิมพ์' : 'พิมพ์ได้เฉพาะรายงานปัญหาที่ส่งแล้ว', 'muted')); view.appendChild(bar); return;
+      var printable = md && d.doc_no && d.status !== 'CANCELLED' && ((d.module === 'M1' && md.report) || (d.module === 'M4' && md.request));
+      if (!printable) {
+        add(bar, el('span', d.status === 'CANCELLED' ? 'เอกสารนี้ถูกยกเลิกแล้ว — ไม่มีให้พิมพ์' : 'พิมพ์ได้เฉพาะเอกสารที่ส่งแล้ว', 'muted')); view.appendChild(bar); return;
       }
       var pr = el('button', 'พิมพ์ / บันทึกเป็น PDF', '', { type: 'button' });
       pr.addEventListener('click', function () { window.print(); });
       add(bar, pr, el('span', 'เลือกเครื่องพิมพ์ "บันทึกเป็น PDF" เพื่อเก็บไฟล์', 'muted'));
       view.appendChild(bar);
-      view.appendChild(m1Paper(d, md));
+      view.appendChild(d.module === 'M4' ? m4Paper(d, md) : m1Paper(d, md));
     });
   }
 
@@ -1152,6 +1176,446 @@
     add(paper, el('p', 'หมายเหตุ : ขอให้ส่งแบบฟอร์มนี้ที่ หัวหน้ากลุ่มงานพัสดุ รพ.อุดรธานี', 'p-note'));
     add(paper, el('p', 'เลขที่ ' + d.doc_no + ' · ส่งผ่านระบบเอกสารงานวัสดุการแพทย์เมื่อ ' + thaiDate(submitted, true, true), 'p-sys'));
     return paper;
+  }
+
+  /* ---------- Menu 4 เบิกควบคุม: บันทึกข้อความขออนุมัติเบิกรายการที่ถูกจำกัด ---------- */
+  var M4_REQUIRED = ['department_id', 'phone', 'item_id', 'quantity', 'unit', 'background', 'facts', 'signer_name', 'signer_position'];
+  var M4_TEXT = ['phone', 'unit_doc_no', 'unit', 'background', 'facts', 'signer_name', 'signer_position', 'signer_role'];
+  var M4_UNITS = ['เครื่อง', 'ชิ้น', 'อัน', 'ชุด', 'กล่อง', 'แพ็ค', 'ม้วน', 'ขวด', 'ถุง', 'คู่'];
+  function arabicDigits(s) { return String(s).replace(/[๐-๙]/g, function (c) { return String('๐๑๒๓๔๕๖๗๘๙'.indexOf(c)); }); }
+  function m4ItemLabel(it) { return it.name + ' · ' + it.code; }
+  function m4Subject(name, qty, unit) {
+    return 'ขออนุมัติเบิก' + (name || '…') + (qty ? ' จำนวน ' + qty + (unit ? ' ' + unit : '') : '');
+  }
+
+  function pageRestrictForm(view, args, alive) {
+    var docId = args[0] ? decodeURIComponent(args[0]) : null;
+    var top = pageTitle(view, docId ? 'แก้ไขบันทึกขอเบิก' : 'ขอเบิกรายการที่ถูกจำกัด', 'ระบบเรียงเป็นบันทึกข้อความให้ · ช่องที่มี * ต้องกรอกก่อนส่ง');
+    add(top, add(el('div', null, 'actions'), el('a', 'ดูรายการที่ถูกจำกัด', 'btn secondary', { href: '#/restricted' })));
+    var box = loading(view);
+    var loads = [callApi('m4.form'), loadMaster('departments')];
+    if (docId) loads.push(callApi('documents.get', { id: docId }));
+    Promise.all(loads).then(function (res) {
+      if (!alive()) return; box.remove();
+      for (var i = 0; i < res.length; i++) if (!res[i].ok) { errLine(view, res[i]); return; }
+      var detail = docId ? res[2].data : null, md = detail ? detail.module_data : null;
+      if (detail && (detail.document.module !== 'M4' || !md || !md.can_edit || !md.request)) {
+        add(view, add(el('div', null, 'notice'), document.createTextNode('บันทึกนี้แก้ไขไม่ได้แล้ว · '), el('a', 'ดูรายละเอียด', '', { href: '#/documents/' + encodeURIComponent(docId) })));
+        return;
+      }
+      m4Form(view, res[0].data, res[1].data.rows, detail);
+    });
+  }
+
+  function m4Form(view, init, depts, detail) {
+    var rq = detail ? detail.module_data.request : null, df = init.defaults || {};
+    var st = { docId: detail ? detail.document.id : null, version: rq ? rq.version : null, docVersion: detail ? detail.document.version : null,
+               createRid: null, createSig: null, busy: false };
+    var draftKey = 'm4form:' + me.user_id + ':' + (st.docId || 'new');   // ผูกกับผู้ใช้ — คอมกลางของหอ คนถัดไปไม่เห็นร่างนี้
+    var deptByName = {}, deptName = {}, itemByLabel = {};
+    depts.forEach(function (x) { deptByName[x.name] = x; deptName[x.id] = x.name; });
+    init.restricted.forEach(function (it) { itemByLabel[m4ItemLabel(it)] = it; });
+    /* ร่างเดิมที่วัสดุถูกเอาออกจากรายชื่อแล้ว: แสดงชื่อเดิมไว้ บันทึกข้อความอื่นได้ แต่ส่งไม่ได้จนกว่าจะเลือกใหม่ */
+    var oldLabel = rq && rq.item_id ? m4ItemLabel({ name: rq.item_name, code: rq.item_code }) : null;
+
+    var form = el('form', null, 'card m1form m4form', { autocomplete: 'off', novalidate: 'novalidate' });
+    var inputs = {}, errBox = {};
+    function inp(name, type, max) { var i = el('input', null, '', { type: type || 'text', maxlength: String(max || 200) }); inputs[name] = i; return i; }
+    function area(name, max, rows) { var t = el('textarea', null, '', { maxlength: String(max || 3000), rows: String(rows || 3) }); inputs[name] = t; return t; }
+    function field(name, label, input, req, hint) {
+      var wrap = el('div', null, 'f');
+      input.id = 'm4-' + name;
+      var e = el('div', null, 'ferr', { id: 'm4e-' + name });
+      input.setAttribute('aria-describedby', e.id);
+      add(wrap, el('label', label + (req ? ' *' : ''), '', { for: input.id }), input, hint ? el('div', hint, 'muted') : null, e);
+      errBox[name] = e;
+      return wrap;
+    }
+    function sec(title) { var s = el('fieldset', null, 'sec'); s.appendChild(el('legend', title)); form.appendChild(s); return s; }
+    function row() { var r = el('div', null, 'row'); for (var i = 0; i < arguments.length; i++) r.appendChild(arguments[i]); return r; }
+    function datalist(id, values) {
+      var dl = el('datalist', null, '', { id: id });
+      values.forEach(function (v) { var o = document.createElement('option'); o.value = v; dl.appendChild(o); });
+      return dl;
+    }
+
+    if (!init.restricted.length) {
+      form.appendChild(add(el('div', null, 'notice', { role: 'alert' }), document.createTextNode('ยังไม่มีรายการที่ถูกจำกัดในระบบ — รอพัสดุใส่รายชื่อ'),
+        hasRole('OFFICER') ? el('a', ' · ใส่รายชื่อ', '', { href: '#/restricted' }) : null));
+    }
+    var dept = inp('department_id', 'text', 200); dept.setAttribute('list', 'dl-m4-dept');
+    var phone = inp('phone', 'tel', 50); phone.setAttribute('inputmode', 'tel');
+    add(sec('ส่วนราชการ'), row(field('department_id', 'หน่วยงาน', dept, true, 'เลือกจากรายการ'), field('phone', 'โทร.', phone, true)),
+        field('unit_doc_no', 'ที่ (เลขหนังสือของหน่วยงาน ถ้ามี)', inp('unit_doc_no', 'text', 100), false, 'เช่น อด ๐๐๓๓.๑๐๓.๔/๕๔๖'));
+
+    var item = inp('item_id', 'text', 600); item.setAttribute('list', 'dl-m4-item');
+    var qty = inp('quantity', 'text', 7); qty.setAttribute('inputmode', 'numeric');
+    var unit = inp('unit', 'text', 50); unit.setAttribute('list', 'dl-m4-unit');
+    var subject = el('div', null, 'm4-subject', { 'aria-live': 'polite' });
+    add(sec('เรื่อง'), field('item_id', 'วัสดุที่ขอเบิก', item, true, 'พิมพ์ชื่อหรือรหัสแล้วเลือก — เลือกได้เฉพาะรายการที่ถูกจำกัด'),
+        row(field('quantity', 'จำนวน', qty, true), field('unit', 'หน่วยนับ', unit, true)), subject);
+
+    var bg = area('background', 3000, 4), facts = area('facts', 3000, 3);
+    bg.placeholder = 'เช่น ด้วยหน่วยงาน… ได้รับมอบหมายให้… และมีความจำเป็นต้องใช้… สำหรับ…';
+    add(sec('เรียน ' + 'หัวหน้ากลุ่มงานพัสดุ โรงพยาบาลอุดรธานี'), field('background', 'ต้นเรื่อง', bg, true, 'เหตุผลความจำเป็นที่ต้องใช้'),
+        field('facts', 'ข้อเท็จจริง', facts, true, 'ระบบเติมให้จากวัสดุและจำนวน แก้ได้'),
+        add(el('div', null, 'f'), el('div', 'ข้อเสนอ', 'lbl'), el('div', 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ', 'muted')));
+
+    add(sec('ผู้ลงนาม (หัวหน้าหน่วยงาน)'),
+        row(field('signer_name', 'ชื่อ-สกุล', inp('signer_name'), true), field('signer_position', 'ตำแหน่ง', inp('signer_position'), true)),
+        field('signer_role', 'ตำแหน่งบริหาร (ถ้ามี)', inp('signer_role', 'text', 300), false, 'เช่น หัวหน้ากลุ่มงาน… หรือ รักษาการหัวหน้า…'),
+        el('div', 'ระบบบันทึกชื่อบัญชีที่กดส่ง (' + me.full_name + ') ไว้ในประวัติ และพิมพ์ไว้ท้ายบันทึก', 'muted'));
+
+    var send = el('button', 'ส่งบันทึก', '', { type: 'button' }), draft = el('button', 'บันทึกร่าง', 'secondary', { type: 'button' });
+    var back = el('a', 'ยกเลิก', '', { href: st.docId ? '#/documents/' + encodeURIComponent(st.docId) : '#/' });
+    var restored = el('div', null, 'notice hidden', { role: 'status' });
+    if (!init.restricted.length) send.disabled = true;
+    add(form, add(el('div', null, 'actions'), send, draft, back));
+    form.insertBefore(restored, form.firstChild);
+    add(form, datalist('dl-m4-dept', depts.map(function (x) { return x.name; })), datalist('dl-m4-item', init.restricted.map(m4ItemLabel)), datalist('dl-m4-unit', M4_UNITS));
+    view.appendChild(form);
+
+    // ---- ข้อเท็จจริงเติมเองจากหน่วยงาน/วัสดุ/จำนวน จนกว่าผู้ใช้จะแก้ข้อความเอง ----
+    function itemNameNow() { var v = item.value.trim(); var it = itemByLabel[v]; return it ? it.name : (v === oldLabel ? rq.item_name : ''); }
+    function autoFacts() {
+      var dn = dept.value.trim(), n = itemNameNow(), q = arabicDigits(qty.value.trim()), u = unit.value.trim();
+      if (!n || !q) return '';
+      return 'ในการนี้ ' + (dn || 'หน่วยงาน') + ' จึงขออนุมัติเบิก' + n + ' จำนวน ' + q + (u ? ' ' + u : '') + ' เพื่อนำมาใช้ในการปฏิบัติงานตามภารกิจดังกล่าว';
+    }
+    var lastAuto = '';
+    function refreshAuto() {
+      subject.textContent = 'เรื่อง ' + m4Subject(itemNameNow(), arabicDigits(qty.value.trim()), unit.value.trim());
+      var a = autoFacts();
+      if (facts.value.trim() === '' || facts.value === lastAuto) { facts.value = a; }
+      lastAuto = a;
+    }
+
+    // ---- ค่าเริ่มต้น / ข้อมูลเดิม / ข้อความที่พิมพ์ค้าง ----
+    function serverValues() {
+      var v = {};
+      if (rq) {
+        M4_TEXT.forEach(function (k) { v[k] = rq[k] || ''; });
+        v.department_id = rq.department_id ? (deptName[rq.department_id] || '') : '';
+        v.item_id = rq.item_id ? oldLabel : '';
+        v.quantity = rq.quantity ? String(rq.quantity) : '';
+      } else {
+        v.department_id = me.department_id && deptName[me.department_id] ? deptName[me.department_id] : '';
+        ['phone', 'signer_name', 'signer_position', 'signer_role'].forEach(function (k) { v[k] = df[k] || ''; });
+      }
+      return v;
+    }
+    function apply(v) { Object.keys(inputs).forEach(function (k) { inputs[k].value = v[k] || ''; }); lastAuto = autoFacts(); refreshAuto(); }
+    function snapshot() { var v = {}; Object.keys(inputs).forEach(function (k) { v[k] = inputs[k].value; }); return v; }
+    apply(serverValues());
+    var saved = storeGet(draftKey);
+    if (saved && saved.values && (saved.version || null) === (st.version || null)) {
+      apply(saved.values);
+      clear(restored); restored.classList.remove('hidden');
+      var undo = el('button', 'ล้าง', 'secondary small', { type: 'button' });
+      undo.addEventListener('click', function () { storeDel(draftKey); apply(serverValues()); restored.classList.add('hidden'); });
+      add(restored, document.createTextNode('กู้ข้อความที่พิมพ์ค้างไว้แล้ว '), undo);
+    }
+    var t = null;
+    form.addEventListener('input', function (ev) {
+      var k = ev.target && ev.target.id ? ev.target.id.replace(/^m4-/, '') : '';
+      if (errBox[k]) { errBox[k].textContent = ''; ev.target.removeAttribute('aria-invalid'); }
+      if (k !== 'facts') refreshAuto();
+      clearTimeout(t); t = setTimeout(function () { storeSet(draftKey, { version: st.version, values: snapshot() }); }, 400);
+    });
+
+    // ---- ตรวจ / รวบรวมข้อมูล ----
+    function collect() {
+      var p = {};
+      var dn = dept.value.trim(); p.department_id = dn && deptByName[dn] ? deptByName[dn].id : '';
+      var iv = item.value.trim(), it = itemByLabel[iv] || null;
+      if (!it && iv) { var same = init.restricted.filter(function (x) { return x.name === iv || x.code === iv; }); if (same.length === 1) it = same[0]; }
+      p.item_id = it ? it.item_id : (iv && iv === oldLabel ? rq.item_id : '');
+      var qv = arabicDigits(qty.value.trim());
+      p.quantity = qv === '' ? '' : (/^\d+$/.test(qv) ? Number(qv) : qv);
+      M4_TEXT.forEach(function (k) { p[k] = inputs[k].value.trim(); });
+      return p;
+    }
+    function check(p, forSubmit) {
+      var e = {};
+      if (dept.value.trim() && !p.department_id) e.department_id = 'pick_from_list';
+      if (item.value.trim() && !p.item_id) e.item_id = 'pick_from_list';
+      if (forSubmit && p.item_id && item.value.trim() === oldLabel && !itemByLabel[oldLabel]) e.item_id = 'not_restricted';
+      if (p.quantity !== '' && (typeof p.quantity !== 'number' || p.quantity < 1)) e.quantity = typeof p.quantity === 'number' ? 'too_small' : 'must_be_integer';
+      if (p.phone && !/[0-9๐-๙]/.test(p.phone)) e.phone = 'invalid_phone';
+      if (forSubmit) M4_REQUIRED.forEach(function (k) { if ((p[k] === '' || p[k] === null || p[k] === undefined) && !e[k]) e[k] = 'required'; });
+      return e;
+    }
+    function showErrors(e) {
+      Object.keys(errBox).forEach(function (k) { errBox[k].textContent = ''; inputs[k] && inputs[k].removeAttribute('aria-invalid'); });
+      var first = null;
+      Object.keys(e).forEach(function (k) {
+        if (errBox[k]) { errBox[k].textContent = fieldText(e[k]); inputs[k].setAttribute('aria-invalid', 'true'); if (!first) first = inputs[k]; }
+      });
+      if (first) { first.focus(); if (first.scrollIntoView) first.scrollIntoView({ block: 'center' }); }
+      return Object.keys(e).length;
+    }
+    function serverFail(r) { if (r.fields) showErrors(r.fields); reportFail(r); }
+
+    function save() {
+      var p = collect(), body = {}, opts = {};
+      Object.keys(p).forEach(function (k) { body[k] = p[k]; });
+      if (st.docId) { body.document_id = st.docId; body.version = st.version; }
+      else {
+        if (!st.createRid) { st.createRid = newRequestId(); st.createSig = JSON.stringify(p); }
+        opts.requestId = st.createRid;
+      }
+      return callApi('m4.save', body, opts).then(function (r) {
+        if (!r.ok) return r;
+        var wasCreate = !st.docId;
+        st.docId = r.data.document_id; st.version = r.data.version; st.docVersion = r.data.doc_version;
+        storeDel(draftKey);
+        if (wasCreate) {
+          var sig = st.createSig; st.createRid = null; st.createSig = null;
+          draftKey = 'm4form:' + me.user_id + ':' + st.docId;
+          back.setAttribute('href', '#/documents/' + encodeURIComponent(st.docId));
+          try { history.replaceState(null, '', '#/restrict/' + encodeURIComponent(st.docId)); } catch (e) { /* ข้าม */ }
+          /* กดซ้ำหลังเครือข่ายหลุด: ระบบคืนผลการสร้างครั้งแรก ถ้าระหว่างนั้นแก้ข้อความ ต้องบันทึกทับอีกครั้ง */
+          if (sig !== JSON.stringify(p)) return save();
+        }
+        return r;
+      });
+    }
+    function busy(btn, fn) {
+      if (st.busy) return;
+      st.busy = true; send.disabled = true; draft.disabled = true; btn.setAttribute('aria-busy', 'true');
+      Promise.resolve().then(fn).catch(function (e) { toast('เกิดข้อผิดพลาดที่หน้าจอ: ' + (e && e.message), true); })
+        .finally(function () { st.busy = false; send.disabled = !init.restricted.length; draft.disabled = false; btn.removeAttribute('aria-busy'); });
+    }
+    function toDetail() { location.hash = '#/documents/' + encodeURIComponent(st.docId); }
+
+    form.addEventListener('submit', function (ev) { ev.preventDefault(); });
+    send.addEventListener('click', function () {
+      busy(send, function () {
+        var p = collect();
+        if (showErrors(check(p, true))) { toast('กรอกช่องที่มี * ให้ครบ', true); return; }
+        return save().then(function (r) {
+          if (!r.ok) { serverFail(r); return; }
+          return callApi('workflow.transition', { document_id: st.docId, action: 'SUBMIT', version: st.docVersion }).then(function (x) {
+            if (!x.ok) { serverFail(x); return; }
+            toast('ส่งบันทึกแล้ว เลขที่ ' + x.data.document.doc_no);
+            toDetail();
+          });
+        });
+      });
+    });
+    draft.addEventListener('click', function () {
+      busy(draft, function () {
+        var p = collect();
+        if (showErrors(check(p, false))) return;
+        return save().then(function (r) {
+          if (!r.ok) { serverFail(r); return; }
+          toast('บันทึกร่างแล้ว'); toDetail();
+        });
+      });
+    });
+  }
+
+  /** ผลพิจารณา (หน่วยงานเห็นเมื่อปิดงาน) */
+  function m4DecisionText(x) {
+    if (!x || !x.decision) return '';
+    if (x.decision === 'มอบ') return 'มอบ ' + (x.decision_to || '') + ' ดำเนินการตามระเบียบพัสดุ';
+    if (x.decision === 'แจ้ง') return 'แจ้ง ' + (x.decision_to || '');
+    return x.decision;
+  }
+  function m4DecisionCard(x) {
+    var c = el('div', null, 'card doc-part reply');
+    add(c, el('h2', 'ผลพิจารณาจากพัสดุ'), el('div', m4DecisionText(x), 'pre'), x.decision_note ? el('div', 'หมายเหตุ: ' + x.decision_note, 'pre') : null,
+        el('div', 'ผู้สั่ง ' + [x.ordered_by_name, x.ordered_by_position, x.ordered_by_role].filter(Boolean).join(' · '), 'muted'),
+        x.at ? el('div', 'บันทึกในระบบ ' + (x.recorded_by_name ? 'โดย ' + x.recorded_by_name + ' ' : '') + fmtDate(x.at), 'muted') : null);
+    return c;
+  }
+
+  /** รายละเอียดบันทึก (อ่านอย่างเดียว) — แสดงเฉพาะช่องที่มีค่า */
+  function m4MemoCard(d, md) {
+    var r = md.request, card = el('div', null, 'card doc-part'), kv = el('dl', null, 'kv m1kv');
+    add(card, el('h2', 'บันทึกข้อความ'));
+    function row(label, value, multi) { if (value) add(kv, el('dt', label), el('dd', value, multi ? 'pre' : '')); }
+    row('ส่วนราชการ', [r.department_name, r.phone ? 'โทร. ' + r.phone : ''].filter(Boolean).join(' · '));
+    row('ที่', r.unit_doc_no);
+    row('เรื่อง', m4Subject(r.item_name, r.quantity, r.unit));
+    row('รหัสวัสดุ', r.item_code);
+    row('เรียน', md.to);
+    row('ต้นเรื่อง', r.background, true); row('ข้อเท็จจริง', r.facts, true); row('ข้อเสนอ', md.proposal);
+    row('ผู้ลงนาม', [r.signer_name, r.signer_position, r.signer_role].filter(Boolean).join(' · '));
+    card.appendChild(kv);
+    return card;
+  }
+
+  /** กล่องงานพัสดุ (เห็นเฉพาะ OFFICER): บันทึกผลแทนหัวหน้ากลุ่มงานพัสดุ ตามช่องในบันทึกกระดาษ แล้วปิดงาน */
+  function m4OfficerCard(d, md, refresh) {
+    var o = md.officer, card = el('div', null, 'card doc-part officer');
+    add(card, el('h2', 'งานพัสดุ: ผลพิจารณาของหัวหน้ากลุ่มงานพัสดุ'));
+    if (d.status === 'SUBMITTED') card.appendChild(el('div', 'กด "รับเรื่อง" ด้านบนก่อน จึงบันทึกผลได้', 'muted'));
+    if (!o.can_decide) {
+      if (o.decision) add(card, el('div', m4DecisionText(o), 'pre'), o.decision_note ? el('div', 'หมายเหตุ: ' + o.decision_note, 'pre') : null,
+                         el('div', 'ผู้สั่ง ' + [o.ordered_by_name, o.ordered_by_position, o.ordered_by_role].filter(Boolean).join(' · '), 'muted'));
+      else if (d.status !== 'SUBMITTED') card.appendChild(el('div', '-', 'muted'));
+      return card;
+    }
+    var dv = o.defaults || {};
+    var group = el('div', null, 'm4-decision', { role: 'radiogroup', 'aria-label': 'ผลพิจารณา' }), radios = {};
+    md.decisions.forEach(function (x) {
+      var lab = el('label', null, 'chk'), r = el('input', null, '', { type: 'radio', name: 'm4-decision', value: x });
+      r.checked = o.decision === x; radios[x] = r; add(lab, r, document.createTextNode(' ' + x)); group.appendChild(lab);
+    });
+    function tin(id, val, max) { var i = el('input', null, '', { type: 'text', id: id, maxlength: String(max || 200) }); i.value = val || ''; return i; }
+    var to = tin('m4-dto', o.decision_to, 300), note = tin('m4-dnote', o.decision_note, 1000);
+    var on = tin('m4-oname', o.ordered_by_name || dv.ordered_by_name), op = tin('m4-opos', o.ordered_by_position || dv.ordered_by_position),
+        orr = tin('m4-orole', o.ordered_by_role || dv.ordered_by_role || 'หัวหน้ากลุ่มงานพัสดุ', 300);
+    var e1 = el('div', null, 'ferr'), e2 = el('div', null, 'ferr');
+    function lf(label, input, extra) { return add(el('div', null, 'f'), el('label', label, '', { for: input.id }), input, extra || null); }
+    add(card, el('div', 'ผลพิจารณา *', 'lbl'), group, e1,
+        lf('แจ้ง / มอบ (ระบุ)', to), el('div', 'มอบ = "มอบ … ดำเนินการตามระเบียบพัสดุ"', 'muted'), lf('หมายเหตุ', note),
+        add(el('div', null, 'row'), lf('ชื่อผู้สั่ง *', on, e2), lf('ตำแหน่ง', op)), lf('ตำแหน่งบริหาร', orr),
+        el('div', 'บันทึกแทนตามที่หัวหน้ากลุ่มงานพัสดุสั่ง — ระบบเก็บชื่อบัญชีของคุณเป็นผู้บันทึก', 'muted'));
+    var saveBtn = el('button', 'บันทึก', 'secondary', { type: 'button' }), closeBtn = el('button', 'บันทึกและปิดงาน', '', { type: 'button' });
+    add(card, add(el('div', null, 'actions'), closeBtn, saveBtn));
+    var ver = o.version;
+    function picked() { var v = ''; Object.keys(radios).forEach(function (k) { if (radios[k].checked) v = k; }); return v; }
+    function body() {
+      return { document_id: d.id, version: ver, decision: picked(), decision_to: to.value, decision_note: note.value,
+               ordered_by_name: on.value, ordered_by_position: op.value, ordered_by_role: orr.value };
+    }
+    function saveDecision() {
+      return callApi('m4.decision.save', body()).then(function (r) { if (r.ok) ver = r.data.version; return r; });
+    }
+    saveBtn.addEventListener('click', function () {
+      guard(saveBtn, function () { return saveDecision().then(function (r) { if (!r.ok) { reportFail(r); return; } toast('บันทึกแล้ว'); return refresh(); }); });
+    });
+    closeBtn.addEventListener('click', function () {
+      e1.textContent = picked() ? '' : 'ต้องเลือก'; e2.textContent = on.value.trim() ? '' : 'ต้องกรอก';
+      if (!picked() || !on.value.trim()) { (picked() ? on : radios[md.decisions[0]]).focus(); return; }
+      if (!window.confirm('ปิดงานเรื่องนี้? หลังปิดแก้ไขไม่ได้ และหน่วยงานจะเห็นผลพิจารณา')) return;
+      guard(closeBtn, function () {
+        return saveDecision().then(function (r) {
+          if (!r.ok) { reportFail(r); return; }
+          return callApi('workflow.transition', { document_id: d.id, action: 'COMPLETE', version: d.version }).then(function (x) {
+            if (!x.ok) { reportFail(x); return refresh(); }
+            toast('ปิดงานแล้ว'); return refresh();
+          });
+        });
+      });
+    });
+    return card;
+  }
+
+  /** บันทึกข้อความสำหรับพิมพ์ — ตามรูปแบบบันทึกจริง · ชื่อผู้ลงนาม/ผู้สั่งเป็นข้อความที่พิมพ์ไว้ ไม่ใช่ลายมือชื่อ */
+  function m4Paper(d, md) {
+    var r = md.request, x = md.decision, paper = el('article', null, 'paper memo', { 'aria-label': 'บันทึกข้อความสำหรับพิมพ์' });
+    var stamp = el('div', null, 'stamp');
+    add(stamp, el('div', 'กลุ่มงานพัสดุ', 'stamp-h'), el('div', 'เลขรับ ' + (md.received ? d.doc_no : '')),
+        el('div', 'วันที่ ' + (md.received ? thaiDate(md.received.at, false, true) : '')),
+        el('div', 'เวลา ' + (md.received ? thaiDigits(thaiDate(md.received.at, true).replace(/^.* เวลา /, '')) : '')));
+    add(paper, add(el('div', null, 'memo-head'), el('div'), el('h1', 'บันทึกข้อความ', 'memo-title'), stamp));
+    function line(label, text, extraLabel, extraText) {
+      var p = el('p', null, 'memo-line'); add(p, el('b', label + ' '), el('span', text || '', 'fill grow'));
+      if (extraLabel) add(p, el('b', ' ' + extraLabel + ' '), el('span', extraText || '', 'fill'));
+      return p;
+    }
+    var sent = md.submitted_at || d.submitted_at;
+    add(paper, line('ส่วนราชการ', [r.department_name, 'โรงพยาบาลอุดรธานี'].filter(Boolean).join(' ') + (r.phone ? ' โทร. ' + thaiDigits(r.phone) : '')),
+        line('ที่', r.unit_doc_no || '', 'วันที่', thaiDate(sent, false, true)),
+        line('เรื่อง', m4Subject(r.item_name, r.quantity ? thaiDigits(r.quantity) : '', r.unit)),
+        el('p', 'เรียน ' + md.to, 'memo-to'));
+    function para(label, text) { var p = el('p', null, 'memo-para'); add(p, el('b', label), document.createTextNode(' ' + (text || ''))); return p; }
+    add(paper, para('ต้นเรื่อง', r.background), para('ข้อเท็จจริง', r.facts), para('ข้อเสนอ', md.proposal));
+    var sig = el('div', null, 'memo-sig');
+    add(sig, el('div', ' ', 'sig-space'), el('div', '(' + (r.signer_name || '.'.repeat(30)) + ')'), el('div', 'ตำแหน่ง ' + (r.signer_position || '')), r.signer_role ? el('div', r.signer_role) : null);
+    paper.appendChild(sig);
+    var en = el('div', null, 'memo-endorse');
+    function box(k) { return '(' + (x && x.decision === k ? '✓' : '  ') + ') '; }
+    add(en, el('div', box('ทราบ') + 'ทราบ'), el('div', box('แจ้ง') + 'แจ้ง ' + (x && x.decision === 'แจ้ง' ? (x.decision_to || '') : '.'.repeat(20))),
+        el('div', box('มอบ') + 'มอบ ' + (x && x.decision === 'มอบ' ? (x.decision_to || '') : '.'.repeat(20))), el('div', 'ดำเนินการตามระเบียบพัสดุ'),
+        el('div', 'หมายเหตุ ' + (x && x.decision_note ? x.decision_note : '.'.repeat(24))), el('div', ' ', 'sig-space'),
+        el('div', '(' + (x && x.ordered_by_name ? x.ordered_by_name : '.'.repeat(30)) + ')'), x && x.ordered_by_position ? el('div', x.ordered_by_position) : null,
+        el('div', x && x.ordered_by_role ? x.ordered_by_role : 'หัวหน้ากลุ่มงานพัสดุ'));
+    paper.appendChild(en);
+    var sys = 'เลขที่ ' + d.doc_no + ' · ส่งผ่านระบบเอกสารงานวัสดุการแพทย์โดย ' + (md.submitted_by_name || '-') + ' เมื่อ ' + thaiDate(sent, true, true);
+    if (x && x.at) sys += ' · บันทึกผลแทนผู้สั่งโดย ' + (x.recorded_by_name || '-') + ' เมื่อ ' + thaiDate(x.at, true, true);
+    add(paper, el('p', sys, 'p-sys'));
+    return paper;
+  }
+
+  /* ---------- รายการที่ถูกจำกัด: ทุกคนดูได้ · พัสดุเพิ่ม/เอาออก ---------- */
+  function m4CodesIn(text) {
+    var t = arabicDigits(text || ''), found = t.match(/[0-9]+(?:-[0-9]+)+/g);
+    if (!found) found = t.split(/[\s,;]+/).filter(Boolean);
+    var out = []; found.forEach(function (c) { if (out.indexOf(c) < 0) out.push(c); });
+    return out;
+  }
+  function pageRestrictedList(view, args, alive) {
+    var isOff = hasRole('OFFICER');
+    var top = pageTitle(view, 'รายการที่ถูกจำกัด', 'ต้องทำบันทึกขออนุมัติก่อนเบิก' + (isOff ? ' · พัสดุเพิ่ม/เอาออกได้' : ''));
+    add(top, add(el('div', null, 'actions'), el('a', '+ ขอเบิกรายการที่ถูกจำกัด', 'btn', { href: '#/restrict' })));
+    var listBox = el('div'), q = el('input', null, '', { type: 'search', placeholder: 'ค้นจากรหัสหรือชื่อ', 'aria-label': 'ค้นรายการที่ถูกจำกัด' });
+    q.style.width = '100%'; q.style.maxWidth = '420px';
+    if (isOff) view.appendChild(m4AddBox(function () { return load(); }));
+    view.appendChild(add(el('div', null, 'card'), q, listBox));
+    var rows = [];
+    function draw() {
+      clear(listBox);
+      var k = q.value.trim().toLowerCase(), shown = rows.filter(function (r) { return !k || (r.code + ' ' + r.name).toLowerCase().indexOf(k) >= 0; });
+      listBox.appendChild(el('div', 'ทั้งหมด ' + rows.length + ' รายการ' + (k ? ' · ตรงคำค้น ' + shown.length : ''), 'muted'));
+      if (!rows.length) { listBox.appendChild(el('p', 'ยังไม่มีรายการ', 'muted')); return; }
+      var t = el('table', null, 'stack'), tr = el('tr'), heads = ['รหัส', 'ชื่อรายการ', 'หมายเหตุ'].concat(isOff ? [''] : []);
+      heads.forEach(function (h) { tr.appendChild(el('th', h)); }); add(t, add(el('thead'), tr));
+      var tb = el('tbody');
+      shown.forEach(function (r) {
+        var row = el('tr'); add(row, el('td', r.code), el('td', r.name), el('td', r.note || ''));
+        if (isOff) {
+          var rm = el('button', 'เอาออก', 'danger small', { type: 'button' });
+          rm.addEventListener('click', function () {
+            if (!window.confirm('เอา "' + r.name + '" ออกจากรายการที่ถูกจำกัด? ร่างที่เลือกรายการนี้จะส่งไม่ได้ (ที่ส่งแล้วไม่กระทบ)')) return;
+            guard(rm, function () {
+              return callApi('m4.restricted.remove', { id: r.id, version: r.version }).then(function (x) { if (!x.ok) { reportFail(x); return; } toast('เอาออกแล้ว'); return load(); });
+            });
+          });
+          add(row, add(el('td'), rm));
+        }
+        [].forEach.call(row.children, function (td, i) { if (heads[i]) td.setAttribute('data-label', heads[i]); });
+        tb.appendChild(row);
+      });
+      add(t, tb); add(listBox, add(el('div', null, 'scroll'), t));
+    }
+    q.addEventListener('input', draw);
+    function load() {
+      clear(listBox); loading(listBox);
+      return callApi('m4.restricted.list').then(function (r) {
+        if (!alive()) return; clear(listBox);
+        if (!r.ok) { listBox.appendChild(el('span', errText(r), 'fail')); return; }
+        rows = r.data.rows; draw();
+      });
+    }
+    load();
+  }
+  function m4AddBox(onDone) {
+    var card = el('div', null, 'card officer');
+    var ta = el('textarea', null, '', { rows: '4', id: 'm4-codes', maxlength: '20000', placeholder: 'วางรหัสวัสดุ เช่น 6-01-050-001 (วางจาก Excel ทั้งคอลัมน์ได้)' });
+    var note = el('input', null, '', { type: 'text', id: 'm4-rnote', maxlength: '300' });
+    var info = el('div', null, 'muted', { 'aria-live': 'polite' }), btn = el('button', 'เพิ่มเข้ารายการ', '', { type: 'button' });
+    add(card, el('h2', 'เพิ่มรายการ (พัสดุ)'), el('label', 'รหัสวัสดุ', '', { for: 'm4-codes' }), ta,
+        el('label', 'หมายเหตุ (ถ้ามี)', '', { for: 'm4-rnote' }), note, info, add(el('div', null, 'actions'), btn));
+    ta.addEventListener('input', function () { var n = m4CodesIn(ta.value).length; info.textContent = n ? 'พบ ' + n + ' รหัสในข้อความ' : ''; });
+    btn.addEventListener('click', function () {
+      var codes = m4CodesIn(ta.value);
+      if (!codes.length) { info.textContent = 'ยังไม่มีรหัส'; ta.focus(); return; }
+      if (codes.length > 500) { info.textContent = 'ครั้งละไม่เกิน 500 รหัส'; return; }
+      guard(btn, function () {
+        return callApi('m4.restricted.add', { codes: codes, note: note.value }).then(function (r) {
+          if (!r.ok) { reportFail(r); return; }
+          var x = r.data, msg = 'เพิ่ม ' + x.added + (x.reopened ? ' · เปิดกลับ ' + x.reopened : '') + (x.already ? ' · มีอยู่แล้ว ' + x.already : '');
+          if (x.not_found.length) { msg += ' · ไม่พบในข้อมูลหลัก ' + x.not_found.length + ': ' + x.not_found.join(', '); ta.value = x.not_found.join('\n'); }
+          else ta.value = '';
+          info.textContent = msg; toast('บันทึกรายการแล้ว'); return onDone();
+        });
+      });
+    });
+    return card;
   }
 
   /* ---------- ข้อมูลหลัก (อ่านอย่างเดียว) ---------- */
