@@ -1,0 +1,46 @@
+/* BizFlow Phase 0 — A4 document template (shared by QT / DN / INV / RC). Fictional data only. */
+@page { size: A4; margin: 0 }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:"Sarabun","Noto Sans Thai",sans-serif;color:#1b1f24;font-size:10pt;line-height:1.38}
+body{background:#d9dde2}
+.sheet{width:210mm;height:297mm;margin:8mm auto;background:#fff;padding:13mm 13mm 11mm;position:relative;display:flex;flex-direction:column;gap:3.2mm;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.18);page-break-after:always;break-after:page}
+@media print{body{background:#fff}.sheet{margin:0;box-shadow:none}}
+b,strong{font-weight:600}
+.hd{display:flex;justify-content:space-between;gap:8mm;border-bottom:1.4px solid #1E3A5F;padding-bottom:3mm}
+.seller{display:flex;gap:3mm;align-items:flex-start;max-width:112mm}
+.sn{font-size:12.5pt;font-weight:700;color:#1E3A5F;line-height:1.25}
+.sne{font-size:9pt;color:#4a5260;margin-bottom:.5mm}
+.sa{font-size:8.6pt;color:#2b323b;line-height:1.35}
+.docid{text-align:right;min-width:62mm;position:relative}
+.dt1{font-size:19pt;font-weight:700;color:#1E3A5F;line-height:1.1}
+.dt2{font-size:9pt;letter-spacing:.14em;color:#4a5260;margin-bottom:1.5mm}
+.meta{margin-left:auto;font-size:9.4pt;border-collapse:collapse}
+.meta td{padding:.2mm 0 .2mm 3mm;vertical-align:top}.meta td:first-child{color:#4a5260;text-align:right;white-space:nowrap}.meta td:last-child{text-align:left}
+.copylab{position:absolute;right:0;top:-1mm;font-size:8.5pt;font-weight:600;border:1px solid;border-radius:3px;padding:0 3mm;transform:translateY(-100%)}
+.copylab.orig{color:#1E3A5F;border-color:#1E3A5F}.copylab.copy{color:#8a3b00;border-color:#8a3b00;background:#fff4e8}
+.pg{font-size:8.5pt;color:#4a5260;margin-top:1mm}
+.parties{display:flex;gap:4mm}
+.bx{flex:1;border:1px solid #c5cbd3;border-radius:3px;padding:2.2mm 3mm;font-size:9.4pt;line-height:1.38}
+.bl{font-size:8.2pt;font-weight:600;color:#4a5260;letter-spacing:.02em;margin-bottom:.6mm}
+.refline{font-size:9pt;color:#2b323b;padding:.5mm 0}
+table{border-collapse:collapse;width:100%}
+.items{font-size:9.2pt;margin-top:.5mm}
+.items th{background:#EEF2F7;border-top:1px solid #1E3A5F;border-bottom:1px solid #1E3A5F;padding:1.4mm 2mm;text-align:left;font-weight:600;font-size:8.8pt}
+.items td{padding:1.5mm 2mm;border-bottom:1px solid #e3e7ec;vertical-align:top}
+.items tr.pad td{height:5.2mm;border-bottom:1px solid #f0f2f5}
+.items .r,.sum td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.c{text-align:center}.r{text-align:right}
+.tot{display:flex;gap:5mm;align-items:flex-start;margin-top:1mm}
+.words{flex:1;font-size:9.2pt}
+.w{font-size:10.6pt;font-weight:600;border:1px solid #c5cbd3;border-radius:3px;padding:1.8mm 3mm;background:#f8f9fb;margin-bottom:2.4mm}
+.pay{font-size:8.8pt;line-height:1.4}
+.sum{width:78mm;font-size:9.6pt}
+.sum td{padding:1mm 2mm;border-bottom:1px solid #e3e7ec}
+.sum tr.gt td{font-weight:700;font-size:11pt;background:#EEF2F7;border-top:1.4px solid #1E3A5F;border-bottom:1.4px solid #1E3A5F}
+.terms{font-size:8.8pt;margin-top:.5mm}.terms ol{margin:0;padding-left:5mm}
+.remark{font-size:8.4pt;border:1px dashed #b9c0c9;border-radius:3px;padding:1.4mm 2.5mm;color:#4a5260}
+.sigs{display:flex;gap:10mm;margin-top:auto;padding-top:6mm}
+.sigs>div{flex:1;text-align:center;font-size:9pt}
+.sigs .line{border-bottom:1px solid #4a5260;height:11mm;margin-bottom:1.2mm}
+.sub{font-size:8pt;color:#6a7280}
+.ft{display:flex;justify-content:flex-end;font-size:7.4pt;color:#8a919c;border-top:1px solid #e3e7ec;padding-top:1.4mm;margin-top:2mm}

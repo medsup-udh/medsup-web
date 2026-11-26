@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BizFlow wireframe — สินค้า</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="wf.css"></head>
+<body>
+<div class="app">
+ <aside class="side">
+  <div class="brand"><div class="mark">B</div><div><b>BizFlow</b><span>บริษัท ตัวอย่างบรรจุภัณฑ์ จำกัด</span></div></div>
+  <nav class="nav"><a class=""><svg viewBox="0 0 24 24" class=""><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ภาพรวม</a><a class=""><svg viewBox="0 0 24 24" class=""><path d="M12 5v14M5 12h14"/></svg>สร้างเอกสาร</a><a class=""><svg viewBox="0 0 24 24" class=""><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 17h5"/></svg>เอกสาร</a><a class="on"><svg viewBox="0 0 24 24" class=""><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>สินค้า</a><a class=""><svg viewBox="0 0 24 24" class=""><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.4 3.4 0 0 1 0 6.4M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>ลูกค้า</a><div class="sep"></div><a class=""><svg viewBox="0 0 24 24" class=""><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>รายงาน</a><a class=""><svg viewBox="0 0 24 24" class=""><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>ตั้งค่า</a></nav>
+  <div class="foot">Wireframe Phase 0 · ข้อมูลสมมติทั้งหมด</div>
+ </aside>
+ <div class="main">
+  <header class="top">
+   <div class="search"><svg viewBox="0 0 24 24" class=""><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span>ค้นหาเอกสาร ลูกค้า สินค้า…</span><kbd>/</kbd></div>
+   <div class="sp"></div>
+   <span class="wfbadge">Wireframe · ข้อมูลสมมติ</span>
+   <button class="btn primary d-only"><svg viewBox="0 0 24 24" class=""><path d="M12 5v14M5 12h14"/></svg>สร้างเอกสาร</button>
+   <div class="avatar">สม</div>
+  </header>
+  <main class="content">
+   <div class="pagehead"><div><div class="crumb">Product master + ประวัติราคา</div><h1>สินค้า</h1></div><div class="act"><button class="btn">นำเข้า CSV</button><button class="btn primary keep">เพิ่มสินค้า</button></div></div>
+
+   <div class="row" style="margin-bottom:12px"><div class="input" style="width:320px"><svg viewBox="0 0 24 24" class=""><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span class="muted">ชื่อหรือรหัสสินค้า</span></div><span class="check d-only"><i></i>แสดงที่ปิดใช้งาน</span><span class="small muted" style="margin-left:auto">ไม่มีจำนวนคงเหลือ — ระบบไม่ใช่ระบบคลังสินค้า <span class="pin">1</span></span></div>
+   <div class="grid g32" style="align-items:start">
+    <div class="card"><table><thead><tr><th>รหัส</th><th>ชื่อสินค้า</th><th class="hide-m">หน่วย</th><th class="num">ราคาล่าสุด</th><th class="hide-m">ใช้ล่าสุด</th></tr></thead><tbody>
+     <tr class="sel"><td>P-0001</td><td><b>กล่องกระดาษลูกฟูก 3 ชั้น 30x40x30 ซม.</b></td><td class="hide-m">กล่อง</td><td class="num">18.50</td><td class="hide-m small">10 พ.ย. 2569</td></tr>
+     <tr><td>P-0002</td><td>เทปโอพีพี ใส 2 นิ้ว x 100 หลา</td><td class="hide-m">ม้วน</td><td class="num">39.00</td><td class="hide-m small">10 พ.ย. 2569</td></tr>
+     <tr><td>P-0003</td><td>บับเบิ้ลกันกระแทก 65 ซม. x 100 ม.</td><td class="hide-m">ม้วน</td><td class="num">420.00</td><td class="hide-m small">10 พ.ย. 2569</td></tr>
+     <tr><td>P-0004</td><td>ฟิล์มยืดพันพาเลท 50 ซม. x 300 ม.</td><td class="hide-m">ม้วน</td><td class="num">285.00</td><td class="hide-m small">24 พ.ย. 2569</td></tr>
+     <tr><td>P-0005</td><td>กล่องไปรษณีย์ เบอร์ D (แพ็ค 20 ใบ)</td><td class="hide-m">แพ็ค</td><td class="num">95.00</td><td class="hide-m small">24 พ.ย. 2569</td></tr>
+     <tr><td>S-0001</td><td>ค่าขนส่งในเขตกรุงเทพฯ</td><td class="hide-m">เที่ยว</td><td class="num">350.00</td><td class="hide-m small">24 พ.ย. 2569</td></tr>
+    </tbody></table></div>
+    <div class="card"><div class="hd"><div><h2>กล่องกระดาษลูกฟูก 3 ชั้น 30x40x30 ซม.</h2><div class="small muted">P-0001 · กล่อง · ภาษี: VAT 7%</div></div><button class="btn sm r">แก้ไข</button></div>
+     <div class="bd"><div class="small muted" style="margin-bottom:6px">ประวัติราคา (บันทึกเมื่อออกเอกสาร) <span class="pin">2</span></div>
+      <table><thead><tr><th>วันที่</th><th>เอกสาร</th><th class="hide-m">ลูกค้า</th><th class="num">ราคา</th></tr></thead><tbody>
+       <tr><td class="small">10 พ.ย. 69</td><td class="small">INV-2026-0042</td><td class="hide-m small">สมมติการค้า</td><td class="num">18.50</td></tr>
+       <tr><td class="small">2 พ.ย. 69</td><td class="small">QT-2026-0015</td><td class="hide-m small">สมมติการค้า</td><td class="num">18.50</td></tr>
+       <tr><td class="small">14 ต.ค. 69</td><td class="small">INV-2026-0033</td><td class="hide-m small">ทดสอบดี</td><td class="num">19.00</td></tr>
+       <tr><td class="small">1 ต.ค. 69</td><td class="small">แก้ในฐานข้อมูล</td><td class="hide-m small">—</td><td class="num">19.00</td></tr>
+       <tr><td class="small">5 ก.ย. 69</td><td class="small">INV-2026-0027</td><td class="hide-m small">ฟิกชั่น ฟู้ด</td><td class="num">17.80</td></tr>
+      </tbody></table>
+      <div class="hint" style="margin-top:8px">ราคาในเอกสารเก่าไม่เปลี่ยนเมื่อแก้ราคาสินค้า</div></div></div>
+   </div>
+
+  </main>
+ </div>
+</div>
+
+<nav class="bottom-nav"><a class=" "><svg viewBox="0 0 24 24" class=""><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ภาพรวม</a><a class=" "><svg viewBox="0 0 24 24" class=""><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 17h5"/></svg>เอกสาร</a><a class="plus "><span class="c"><svg viewBox="0 0 24 24" class=""><path d="M12 5v14M5 12h14"/></svg></span>สร้าง</a><a class=" "><svg viewBox="0 0 24 24" class=""><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.4 3.4 0 0 1 0 6.4M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>ลูกค้า</a><a class=" "><svg viewBox="0 0 24 24" class=""><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>เพิ่มเติม</a></nav>
+</body></html>
