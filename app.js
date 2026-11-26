@@ -316,6 +316,10 @@
               me: function () { return me; }, fmtDate: fmtDate, pageTitle: pageTitle, loading: loading, badge: badge, statusLabel: statusLabel, actionLabel: actionLabel,
               STATUS_LABEL: STATUS_LABEL, ACTION_LABEL: ACTION_LABEL, FIELD_MSG: FIELD_MSG, FIELD_LABEL: FIELD_LABEL, WRITE_ACTIONS: WRITE_ACTIONS,
               pages: PAGES, detail: {}, label: function (k) { return k; } };
+  EXT.app = { thaiDate: thaiDate, thaiDigits: thaiDigits, n2: n2, newRequestId: newRequestId, route: function () { return route(); }, askComment: askComment,
+              loadMaster: loadMaster, dataList: dataList, docTable: docTable, errLine: errLine, todayYmd: todayYmd, fieldText: fieldText,
+              startSession: function (d) { return startSession(d); },
+              consts: function () { return { M2_SCALE: M2_SCALE, M2_REASON: M2_REASON, POSITIONS: POSITIONS }; } };
   (window.MEDSUP_PLUGINS || []).forEach(function (fn) { try { fn(EXT); } catch (e) { console.error('plugin', e); } });
 
   function buildNav() {
@@ -556,7 +560,7 @@
     view.appendChild(head);
     if (hook && hook.body) hook.body(view, d, md, data, refresh);
 
-    if (isM2) m2RoundCards(view, d, md);
+    if (isM2 && !(hook && hook.body)) m2RoundCards(view, d, md);
     if (isM4) {
       if (md.decision && d.status === 'COMPLETED') view.appendChild(m4DecisionCard(md.decision));
       if (md.request) view.appendChild(m4MemoCard(d, md));
@@ -571,7 +575,7 @@
       }
       if (md.report) view.appendChild(m1ReportCard(md.report));
       else view.appendChild(el('div', 'ไม่พบข้อมูลรายงานของเอกสารนี้', 'card doc-part notice'));
-      if (md.officer) view.appendChild(m1OfficerCard(d, md, refresh));
+      if (md.officer) view.appendChild(hook && hook.officer ? hook.officer(d, md, refresh) : m1OfficerCard(d, md, refresh));
     }
 
     var att = el('div', null, 'card doc-part'); add(att, el('h2', 'ไฟล์แนบ (' + data.attachments.length + ')'));
@@ -583,7 +587,7 @@
         var row = el('tr'), act = el('td');
         var dl = el('button', 'ดาวน์โหลด', 'secondary small', { type: 'button' }); dl.addEventListener('click', function () { guard(dl, function () { return downloadAttachment(a); }); });
         add(act, dl);
-        if (data.can_attach) { var rm = el('button', 'ลบ', 'danger small', { type: 'button' }); rm.style.marginLeft = '6px'; rm.addEventListener('click', function () { removeAttachment(rm, a, refresh); }); act.appendChild(rm); }
+        if (data.can_attach && me && (d.requester_id === me.user_id || a.uploaded_by === me.user_id)) { var rm = el('button', 'ลบ', 'danger small', { type: 'button' }); rm.style.marginLeft = '6px'; rm.addEventListener('click', function () { removeAttachment(rm, a, refresh); }); act.appendChild(rm); }
         else if (hasRole('OFFICER')) {   // ไฟล์หลุดข้อมูลผู้ป่วยหลังส่งแล้ว — พัสดุซ่อนได้ (ต้องมีเหตุผล)
           var hd = el('button', 'ซ่อน', 'danger small', { type: 'button', title: 'ซ่อนไฟล์ที่มีข้อมูลผู้ป่วย' }); hd.style.marginLeft = '6px';
           hd.addEventListener('click', function () {

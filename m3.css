@@ -1,0 +1,27 @@
+/* ชุด 26 พ.ย. 2569 — ส่วนเพิ่มของ app.css (ไม่ตัดคำกลางคำ: ใช้ word-break: keep-all ไม่ได้กับภาษาไทย จึงตัดเฉพาะจุดเว้นวรรค/ขอบคำของเบราว์เซอร์) */
+ol.steps { margin:4px 0 10px; padding-left:24px; }
+ol.steps li { margin:2px 0; line-height:1.6; }
+.card.reply h3, .card.officer h3 { margin:14px 0 4px; font-size:16px; }
+.filters { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:8px 12px; }
+.filters .f input, .filters .f select { width:100%; }
+/* เลือกหน่วยงานที่ส่งให้ประเมิน */
+.unitpick { border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:8px 0; }
+.unit-head { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:6px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip.unit { display:inline-flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; }
+.chip.unit input.qty { width:92px; padding:2px 6px; min-height:0; }
+.unitpick .actions { align-items:center; }
+.unitpick .actions select { width:auto; flex:1 1 220px; max-width:420px; }
+.chip-x { background:none; border:0; color:inherit; font-size:18px; line-height:1; padding:0 4px; min-height:0; cursor:pointer; }
+.unit-panel { margin-top:8px; }
+.unit-panel input[type=search] { width:100%; margin-bottom:6px; }
+.unit-list { max-height:340px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:6px 10px; }
+.unit-group { padding:4px 0; border-bottom:1px dashed var(--line); }
+.unit-group:last-child { border-bottom:0; }
+.unit-group .check { display:block; padding:3px 0 3px 22px; }
+.unit-group .check.group { padding-left:0; }
+.hidden { display:none !important; }
+/* เข้าสู่ระบบด้วยบัญชีหน่วยงาน */
+.unitlogin { margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
+.unitlogin h3 { margin:0 0 2px; font-size:17px; }
+code.secret { font-size:20px; letter-spacing:1px; padding:2px 8px; background:var(--card); border:1px dashed var(--line); border-radius:8px; user-select:all; }
