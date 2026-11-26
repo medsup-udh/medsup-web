@@ -353,7 +353,7 @@
   /* เส้นทางเอกสารที่แนะนำ — แสดงเป็นคำแนะนำเท่านั้น ระบบยังเดินตามขั้นตอนเดิม (ผู้ใช้สั่ง 26 พ.ย. 2569) */
   var ROUTE_STEPS = [
     ['หน่วยงานจัดทำ', 'กรอกในระบบ แนบเอกสาร'],
-    ['หัวหน้ากลุ่มงานอนุมัติ', 'กดยืนยันในระบบ'],
+    ['หัวหน้ากลุ่มงานลงนาม', 'บนเอกสารที่พิมพ์จากระบบ (ไม่ต้องกดในระบบ)'],
     ['กลุ่มงานยุทธศาสตร์และแผนงานโครงการ', 'ส่งต่อพัสดุ ระบุ "นำเข้าคณะกรรมการเวชภัณฑ์มิใช่ยา"'],
     ['กลุ่มงานพัสดุรับเรื่อง', 'นำเข้าคณะกรรมการเวชภัณฑ์มิใช่ยา'],
     ['คณะกรรมการพิจารณา', 'หน่วยงานที่ขอชี้แจงเหตุผลในกลุ่ม LINE'],
@@ -550,8 +550,8 @@
           el('dt', 'เพิ่มเข้าคลัง'), el('dd', d.add_to_stock ? 'ขอเพิ่มในรายการเข้าคลัง' : 'ไม่'));
       if (d.background) add(kv, el('dt', 'ความเป็นมา'), el('dd', d.background));
     }
-    add(kv, el('dt', 'ผู้จัดทำ'), el('dd', d.preparer.name ? d.preparer.name + (d.preparer.position ? ' (' + d.preparer.position + ')' : '') : '-'),
-        el('dt', 'หัวหน้าหน่วยงานยืนยัน'), el('dd', signerText(d.head)));
+    add(kv, el('dt', 'ผู้จัดทำ'), el('dd', d.preparer.name ? d.preparer.name + (d.preparer.position ? ' (' + d.preparer.position + ')' : '') : '-'));
+    if (d.head) add(kv, el('dt', 'หัวหน้าหน่วยงานยืนยัน'), el('dd', signerText(d.head)));   // เอกสารเก่าเท่านั้น · ปัจจุบันหัวหน้าลงนามบนกระดาษ
     if (d.note) add(kv, el('dt', 'หมายเหตุ'), el('dd', d.note));
     c.appendChild(kv);
     add(c, el('h2', 'คณะกรรมการ'), committeeView(d.committees));
@@ -789,7 +789,7 @@
     // เอกสารประกอบ (คุณลักษณะเฉพาะ ใบเสนอราคา ฯลฯ) ไม่พิมพ์ แต่ยังต้องแนบในระบบครบชุดเหมือนเดิม
     if (d.note) p.appendChild(el('p', 'หมายเหตุ: ' + d.note));
     // แบบยืนยันใช้กำกับภายใน (ไม่ใช่บันทึกข้อความ): ผู้จัดทำซ้าย · หัวหน้าหน่วยงานขวา แถวเดียวกัน
-    p.appendChild(sigGrid([msig(d.preparer, ['ผู้จัดทำ']), msig(d.head, ['หัวหน้า' + shortDept(d.department_name)])], 2, 'm-pair16 m-keep16'));
+    p.appendChild(sigGrid([msig(d.preparer, ['ผู้จัดทำ']), msig(d.head, ['หัวหน้า' + shortDept(d.department_name)], { edit: true })], 2, 'm-pair16 m-keep16'));
     // ส่วนพัสดุ: ความเห็น · ทราบ/มอบ (เว้นจุดให้เขียนชื่อผู้รับมอบ) · เว้นที่ลงนาม · ชื่อหัวหน้ากลุ่มงานพัสดุ
     var sp = d.supply || { name: SUPPLY_HEAD.name, position: SUPPLY_HEAD.position };
     var box = el('div', null, 'msig m-supbox');
@@ -871,7 +871,7 @@
     p.appendChild(para('ข้อเสนอ', 'จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ จักเป็นพระคุณยิ่ง'));
 
     // เจ้าของหนังสือ: หัวหน้ากลุ่มงาน — ลงนามครึ่งขวาของหน้า
-    p.appendChild(sigGrid([el('div'), msig(d.head, ['หัวหน้า' + unit])], 2, 'm-author'));
+    p.appendChild(sigGrid([el('div'), msig(d.head, ['หัวหน้า' + unit], { edit: true })], 2, 'm-author'));
 
     // ความเห็นตามลำดับการเสนอ: พัสดุ → คณะกรรมการเวชภัณฑ์มิใช่ยา → รองผอ. → ผอ.
     var sp = d.supply || { name: SUPPLY_HEAD.name, position: SUPPLY_HEAD.position };
@@ -911,7 +911,7 @@
       });
     });
     p.appendChild(el('p', 'จึงเรียนมาเพื่อโปรดดำเนินการ', 'm-para'));
-    p.appendChild(sigGrid([el('div'), msig(d.head, ['หัวหน้า' + shortDept(d.department_name)])], 2, 'm-author m-keep16'));
+    p.appendChild(sigGrid([el('div'), msig(d.head, ['หัวหน้า' + shortDept(d.department_name)], { edit: true })], 2, 'm-author m-keep16'));
     p.appendChild(add(el('div', null, 'p-foot'), el('div', 'หมายเหตุ', 'f-h'), el('div', '*  หน่วยงานที่ขอ: ' + (d.department_name || '-')), el('div', '**** ประกอบเอกสารเลขที่ในระบบ ' + th(doc.doc_no))));
     return p;
   }
