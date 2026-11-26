@@ -79,7 +79,7 @@
                       ordered_by_position: 'ตำแหน่งผู้สั่ง', ordered_by_role: 'ตำแหน่งบริหารผู้สั่ง', codes: 'รหัสวัสดุ' };
   /** {ช่อง: รหัส} → "หน่วยงาน: ต้องกรอก, ..." */
   function describeFields(fields) {
-    return Object.keys(fields || {}).map(function (k) { return (FIELD_LABEL[k] || k) + ': ' + fieldText(fields[k]); }).join(', ');
+    return Object.keys(fields || {}).map(function (k) { return (FIELD_LABEL[k] || (typeof EXT !== 'undefined' ? EXT.label(k) : k)) + ': ' + fieldText(fields[k]); }).join(', ');
   }
 
   /* ---------- เรียก API ---------- */
@@ -311,6 +311,12 @@
     { path: 'system', label: 'ทดสอบระบบ', roles: ['ADMIN'], render: pageSystem }
   ];
   function allowed(p) { return !p.roles || p.roles.some(hasRole); }
+  /* ส่วนขยาย (web/m56.js): ลงทะเบียนหน้า ป้าย และส่วนเสริมหน้าเอกสาร โดยไม่ต้องแก้ไฟล์นี้อีก */
+  var EXT = { el: el, add: add, clear: clear, callApi: callApi, guard: guard, toast: toast, reportFail: reportFail, errText: errText, hasRole: hasRole,
+              me: function () { return me; }, fmtDate: fmtDate, pageTitle: pageTitle, loading: loading, badge: badge, statusLabel: statusLabel, actionLabel: actionLabel,
+              STATUS_LABEL: STATUS_LABEL, ACTION_LABEL: ACTION_LABEL, FIELD_MSG: FIELD_MSG, FIELD_LABEL: FIELD_LABEL, WRITE_ACTIONS: WRITE_ACTIONS,
+              pages: PAGES, detail: {}, label: function (k) { return k; } };
+  (window.MEDSUP_PLUGINS || []).forEach(function (fn) { try { fn(EXT); } catch (e) { console.error('plugin', e); } });
 
   function buildNav() {
     var nav = clear($('nav'));
@@ -529,10 +535,13 @@
     head.appendChild(kv);
 
     var acts = el('div', null, 'actions');
+    var hook = md && EXT.detail[d.module] ? EXT.detail[d.module] : null;
+    if (hook && hook.head) hook.head(acts, d, md, data, refresh);
     if (isM1 && md.can_edit) acts.appendChild(el('a', 'แก้ไข', 'btn secondary', { href: '#/report/' + encodeURIComponent(d.id) }));
     if (isM2 && md.can_edit) acts.appendChild(el('a', 'แก้ไขรอบ', 'btn secondary', { href: '#/round/' + encodeURIComponent(d.id) }));
     if (isM4 && md.can_edit) acts.appendChild(el('a', 'แก้ไข', 'btn secondary', { href: '#/restrict/' + encodeURIComponent(d.id) }));
     data.actions.forEach(function (a) {
+      if (hook && hook.skip && hook.skip(a, md)) return;
       if ((isM1 || isM4) && a.action === 'COMPLETE') return;   // ปิดงานทำในกล่องงานพัสดุ (ต้องบันทึกผลก่อน)
       if (isM2 && a.action === 'OPEN') return;       // เปิดรอบทำในหน้าแก้ไขรอบ (บันทึกก่อนแล้วเปิด)
       var b = el('button', actionLabel(a.action), a.action === 'CANCEL' || a.action === 'REJECT' ? 'danger' : (a.action === 'RETURN' ? 'secondary' : ''), { type: 'button' });
@@ -545,6 +554,7 @@
     if ((isM1 || isM4) && d.status === 'RETURNED' && md.can_edit) head.appendChild(el('div', 'พัสดุส่งกลับให้แก้ไข — ดูเหตุผลในประวัติด้านล่าง แก้แล้วกดส่งอีกครั้ง', 'notice'));
     if (isM4 && md.can_edit && md.restricted_ok === false) head.appendChild(el('div', 'วัสดุนี้ถูกเอาออกจากรายการที่ถูกจำกัดแล้ว — กดแก้ไขแล้วเลือกวัสดุใหม่ก่อนส่ง', 'notice', { role: 'alert' }));
     view.appendChild(head);
+    if (hook && hook.body) hook.body(view, d, md, data, refresh);
 
     if (isM2) m2RoundCards(view, d, md);
     if (isM4) {
