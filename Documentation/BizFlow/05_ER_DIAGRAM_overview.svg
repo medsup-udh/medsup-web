@@ -1,0 +1,305 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1210" height="1190" viewBox="0 0 1210 1190" font-family="IBM Plex Sans Thai, IBM Plex Sans, Loma, sans-serif">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="30" y="36" font-size="20" font-weight="600" fill="#1f2328">BizFlow — ER Overview (Phase 0 draft)</text>
+<text x="30" y="58" font-size="12.5" fill="#57606a">22 tables · PK = primary key · FK = foreign key · UK = unique · เส้น: จุดทึบ = ฝั่ง "1", สามขา = ฝั่ง "หลาย" · FK ข้ามหลายคอลัมน์ (branch→sequences, customer→payments, user→audit) ดูจากชื่อ FK ในกล่อง</text>
+<text x="30" y="82" font-size="13" font-weight="600" fill="#1e3a5f">ข้อมูลกิจการและผู้ใช้</text>
+<text x="330" y="82" font-size="13" font-weight="600" fill="#1e3a5f">ลูกค้าและสินค้า</text>
+<text x="630" y="82" font-size="13" font-weight="600" fill="#1e3a5f">เอกสาร</text>
+<text x="930" y="82" font-size="13" font-weight="600" fill="#1e3a5f">รับชำระและตรวจสอบ</text>
+<path d="M30,149.5 C8,149.5 8,286.0 30,286.0" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="30" cy="149.5" r="3.2" fill="#57606a"/>
+<path d="M30,280.0 L20,286.0 L30,292.0 M30,286.0 L20,286.0" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M30,149.5 C1,149.5 1,414.0 30,414.0" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="30" cy="149.5" r="3.2" fill="#57606a"/>
+<path d="M30,408.0 L20,414.0 L30,420.0 M30,414.0 L20,414.0" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M280,130 C305.0,130 305.0,130 330,130" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="280" cy="130" r="3.2" fill="#57606a"/>
+<path d="M330,124 L320,130 L330,136 M330,130 L320,130" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M280,130 C305.0,130 305.0,514 330,514" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="280" cy="130" r="3.2" fill="#57606a"/>
+<path d="M330,508 L320,514 L330,520 M330,514 L320,514" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M330,149.5 C308,149.5 308,286.0 330,286.0" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="330" cy="149.5" r="3.2" fill="#57606a"/>
+<path d="M330,280.0 L320,286.0 L330,292.0 M330,286.0 L320,286.0" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M330,149.5 C301,149.5 301,405.5 330,405.5" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="330" cy="149.5" r="3.2" fill="#57606a"/>
+<path d="M330,399.5 L320,405.5 L330,411.5 M330,405.5 L320,405.5" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M330,533.5 C294,533.5 294,678.5 330,678.5" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="330" cy="533.5" r="3.2" fill="#57606a"/>
+<path d="M330,672.5 L320,678.5 L330,684.5 M330,678.5 L320,678.5" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M880,141.0 C923,141.0 923,258 880,258" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="880" cy="141.0" r="3.2" fill="#57606a"/>
+<path d="M880,252 L890,258 L880,264 M880,258 L890,258" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M580,130 C605.0,130 605.0,258 630,258" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="580" cy="130" r="3.2" fill="#57606a"/>
+<path d="M630,252 L620,258 L630,264 M630,258 L620,258" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M580,514 C605.0,514 605.0,522 630,522" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="580" cy="514" r="3.2" fill="#57606a"/>
+<path d="M630,516 L620,522 L630,528 M630,522 L620,522" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M880,278 C916,278 916,522 880,522" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="880" cy="278" r="3.2" fill="#57606a"/>
+<path d="M880,516 L890,522 L880,528 M880,522 L890,522" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M880,278 C923,278 923,684 880,684" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="880" cy="278" r="3.2" fill="#57606a"/>
+<path d="M880,678 L890,684 L880,690 M880,684 L890,684" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M880,278 C902,278 902,812 880,812" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="880" cy="278" r="3.2" fill="#57606a"/>
+<path d="M880,806 L890,812 L880,818 M880,812 L890,812" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M880,278 C909,278 909,940 880,940" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="880" cy="278" r="3.2" fill="#57606a"/>
+<path d="M880,934 L890,940 L880,946 M880,940 L890,940" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M880,1079.0 C916,1079.0 916,258 880,258" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="880" cy="1079.0" r="3.2" fill="#57606a"/>
+<path d="M880,252 L890,258 L880,264 M880,258 L890,258" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M930,158.0 C887,158.0 887,311.5 930,311.5" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="930" cy="158.0" r="3.2" fill="#57606a"/>
+<path d="M930,305.5 L920,311.5 L930,317.5 M930,311.5 L920,311.5" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M880,258 C905.0,258 905.0,292 930,292" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="880" cy="258" r="3.2" fill="#57606a"/>
+<path d="M930,286 L920,292 L930,298 M930,292 L920,292" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M930,130 C905.0,130 905.0,258 880,258" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="930" cy="130" r="3.2" fill="#57606a"/>
+<path d="M880,252 L890,258 L880,264 M880,258 L890,258" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<path d="M630,258 C605.0,258 605.0,659 580,659" fill="none" stroke="#8c959f" stroke-width="1.3"/>
+<circle cx="630" cy="258" r="3.2" fill="#57606a"/>
+<path d="M580,653 L590,659 L580,665 M580,659 L590,659" stroke="#57606a" stroke-width="1.3" fill="none"/>
+<rect x="30" y="90" width="250" height="119" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="30" y="90" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="30" y="110" width="250" height="6" fill="#424a53"/>
+<text x="40" y="108" font-size="13" font-weight="600" fill="#ffffff">companies</text>
+<text x="40" y="135" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="64" y="135" font-size="11.5" fill="#24292f">id</text>
+<text x="64" y="152" font-size="11.5" fill="#24292f">name_th / name_en</text>
+<text x="40" y="169" font-size="10.5" font-weight="600" fill="#8250df">UK</text>
+<text x="64" y="169" font-size="11.5" fill="#24292f">tax_id (13)</text>
+<text x="64" y="186" font-size="11.5" fill="#24292f">logo_file_id</text>
+<text x="64" y="203" font-size="11.5" fill="#24292f">signatory_name</text>
+<rect x="30" y="235" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="30" y="235" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="30" y="255" width="250" height="6" fill="#424a53"/>
+<text x="40" y="253" font-size="13" font-weight="600" fill="#ffffff">company_branches</text>
+<text x="40" y="280" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="64" y="280" font-size="11.5" fill="#24292f">id</text>
+<text x="40" y="297" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="64" y="297" font-size="11.5" fill="#24292f">company_id</text>
+<text x="64" y="314" font-size="11.5" fill="#24292f">branch_type</text>
+<text x="64" y="331" font-size="11.5" fill="#24292f">branch_code (00000=HQ)</text>
+<rect x="30" y="363" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="30" y="363" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="30" y="383" width="250" height="6" fill="#424a53"/>
+<text x="40" y="381" font-size="13" font-weight="600" fill="#ffffff">company_bank_accounts</text>
+<text x="40" y="408" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="64" y="408" font-size="11.5" fill="#24292f">id</text>
+<text x="40" y="425" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="64" y="425" font-size="11.5" fill="#24292f">company_id</text>
+<text x="64" y="442" font-size="11.5" fill="#24292f">bank_name, account_no</text>
+<text x="64" y="459" font-size="11.5" fill="#24292f">show_on_documents</text>
+<rect x="30" y="491" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="30" y="491" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="30" y="511" width="250" height="6" fill="#424a53"/>
+<text x="40" y="509" font-size="13" font-weight="600" fill="#ffffff">users</text>
+<text x="40" y="536" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="64" y="536" font-size="11.5" fill="#24292f">id</text>
+<text x="40" y="553" font-size="10.5" font-weight="600" fill="#8250df">UK</text>
+<text x="64" y="553" font-size="11.5" fill="#24292f">email</text>
+<text x="64" y="570" font-size="11.5" fill="#24292f">display_name</text>
+<text x="64" y="587" font-size="11.5" fill="#24292f">role (OWNER)</text>
+<rect x="30" y="619" width="250" height="68" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="30" y="619" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="30" y="639" width="250" height="6" fill="#424a53"/>
+<text x="40" y="637" font-size="13" font-weight="600" fill="#ffffff">system_settings</text>
+<text x="40" y="664" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="64" y="664" font-size="11.5" fill="#24292f">key</text>
+<text x="64" y="681" font-size="11.5" fill="#24292f">value (jsonb)</text>
+<rect x="330" y="90" width="250" height="119" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="330" y="90" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="330" y="110" width="250" height="6" fill="#424a53"/>
+<text x="340" y="108" font-size="13" font-weight="600" fill="#ffffff">customers</text>
+<text x="340" y="135" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="364" y="135" font-size="11.5" fill="#24292f">id</text>
+<text x="340" y="152" font-size="10.5" font-weight="600" fill="#8250df">UK</text>
+<text x="364" y="152" font-size="11.5" fill="#24292f">customer_code</text>
+<text x="364" y="169" font-size="11.5" fill="#24292f">name_th, tax_id</text>
+<text x="364" y="186" font-size="11.5" fill="#24292f">is_vat_registered</text>
+<text x="364" y="203" font-size="11.5" fill="#24292f">default_credit_days</text>
+<rect x="330" y="235" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="330" y="235" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="330" y="255" width="250" height="6" fill="#424a53"/>
+<text x="340" y="253" font-size="13" font-weight="600" fill="#ffffff">customer_branches</text>
+<text x="340" y="280" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="364" y="280" font-size="11.5" fill="#24292f">id</text>
+<text x="340" y="297" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="364" y="297" font-size="11.5" fill="#24292f">customer_id</text>
+<text x="364" y="314" font-size="11.5" fill="#24292f">branch_type, branch_code</text>
+<text x="364" y="331" font-size="11.5" fill="#24292f">address</text>
+<rect x="330" y="363" width="250" height="85" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="330" y="363" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="330" y="383" width="250" height="6" fill="#424a53"/>
+<text x="340" y="381" font-size="13" font-weight="600" fill="#ffffff">customer_contacts</text>
+<text x="340" y="408" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="364" y="408" font-size="11.5" fill="#24292f">id</text>
+<text x="340" y="425" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="364" y="425" font-size="11.5" fill="#24292f">customer_id</text>
+<text x="364" y="442" font-size="11.5" fill="#24292f">name, phone, email</text>
+<rect x="330" y="474" width="250" height="119" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="330" y="474" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="330" y="494" width="250" height="6" fill="#424a53"/>
+<text x="340" y="492" font-size="13" font-weight="600" fill="#ffffff">products</text>
+<text x="340" y="519" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="364" y="519" font-size="11.5" fill="#24292f">id</text>
+<text x="340" y="536" font-size="10.5" font-weight="600" fill="#8250df">UK</text>
+<text x="364" y="536" font-size="11.5" fill="#24292f">product_code</text>
+<text x="364" y="553" font-size="11.5" fill="#24292f">name, unit</text>
+<text x="364" y="570" font-size="11.5" fill="#24292f">default_tax_category</text>
+<text x="364" y="587" font-size="11.5" fill="#24292f">latest_price (no stock)</text>
+<rect x="330" y="619" width="250" height="119" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="330" y="619" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="330" y="639" width="250" height="6" fill="#424a53"/>
+<text x="340" y="637" font-size="13" font-weight="600" fill="#ffffff">product_price_history</text>
+<text x="340" y="664" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="364" y="664" font-size="11.5" fill="#24292f">id</text>
+<text x="340" y="681" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="364" y="681" font-size="11.5" fill="#24292f">product_id</text>
+<text x="364" y="698" font-size="11.5" fill="#24292f">unit_price, price_mode</text>
+<text x="340" y="715" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="364" y="715" font-size="11.5" fill="#24292f">document_id, customer_id</text>
+<text x="364" y="732" font-size="11.5" fill="#24292f">insert-only</text>
+<rect x="630" y="90" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="630" y="90" width="250" height="26" rx="6" fill="#1e3a5f"/>
+<rect x="630" y="110" width="250" height="6" fill="#1e3a5f"/>
+<text x="640" y="108" font-size="13" font-weight="600" fill="#ffffff">document_sequences</text>
+<text x="640" y="135" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="664" y="135" font-size="11.5" fill="#24292f">id</text>
+<text x="640" y="152" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="152" font-size="11.5" fill="#24292f">company_branch_id</text>
+<text x="640" y="169" font-size="10.5" font-weight="600" fill="#8250df">UK</text>
+<text x="664" y="169" font-size="11.5" fill="#24292f">(branch, doc_type, period)</text>
+<text x="664" y="186" font-size="11.5" fill="#24292f">last_number</text>
+<rect x="630" y="218" width="250" height="238" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="630" y="218" width="250" height="26" rx="6" fill="#1e3a5f"/>
+<rect x="630" y="238" width="250" height="6" fill="#1e3a5f"/>
+<text x="640" y="236" font-size="13" font-weight="600" fill="#ffffff">documents</text>
+<text x="640" y="263" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="664" y="263" font-size="11.5" fill="#24292f">id</text>
+<text x="664" y="280" font-size="11.5" fill="#24292f">doc_type QT/DN/INV/RC</text>
+<text x="664" y="297" font-size="11.5" fill="#24292f">lifecycle_status, payment_status</text>
+<text x="640" y="314" font-size="10.5" font-weight="600" fill="#8250df">UK</text>
+<text x="664" y="314" font-size="11.5" fill="#24292f">doc_no (null = draft)</text>
+<text x="640" y="331" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="331" font-size="11.5" fill="#24292f">sequence_id, running_no</text>
+<text x="640" y="348" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="348" font-size="11.5" fill="#24292f">customer_id + buyer_* snapshot</text>
+<text x="664" y="365" font-size="11.5" fill="#24292f">seller_snapshot (jsonb)</text>
+<text x="664" y="382" font-size="11.5" fill="#24292f">vat_rate, vatable_base, vat_amount</text>
+<text x="664" y="399" font-size="11.5" fill="#24292f">grand_total, amount_in_words</text>
+<text x="640" y="416" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="416" font-size="11.5" fill="#24292f">payment_id (RC 1:1)</text>
+<text x="640" y="433" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="433" font-size="11.5" fill="#24292f">replaces_document_id</text>
+<text x="664" y="450" font-size="11.5" fill="#24292f">content_hash</text>
+<rect x="630" y="482" width="250" height="136" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="630" y="482" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="630" y="502" width="250" height="6" fill="#424a53"/>
+<text x="640" y="500" font-size="13" font-weight="600" fill="#ffffff">document_items</text>
+<text x="640" y="527" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="664" y="527" font-size="11.5" fill="#24292f">id</text>
+<text x="640" y="544" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="544" font-size="11.5" fill="#24292f">document_id</text>
+<text x="640" y="561" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="561" font-size="11.5" fill="#24292f">product_id (null = ad-hoc)</text>
+<text x="664" y="578" font-size="11.5" fill="#24292f">qty, unit_price, net_amount</text>
+<text x="664" y="595" font-size="11.5" fill="#24292f">tax_category</text>
+<text x="640" y="612" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="612" font-size="11.5" fill="#24292f">source_item_id</text>
+<rect x="630" y="644" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="630" y="644" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="630" y="664" width="250" height="6" fill="#424a53"/>
+<text x="640" y="662" font-size="13" font-weight="600" fill="#ffffff">document_links</text>
+<text x="640" y="689" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="664" y="689" font-size="11.5" fill="#24292f">id</text>
+<text x="640" y="706" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="706" font-size="11.5" fill="#24292f">source_document_id</text>
+<text x="640" y="723" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="723" font-size="11.5" fill="#24292f">target_document_id</text>
+<text x="664" y="740" font-size="11.5" fill="#24292f">link_type</text>
+<rect x="630" y="772" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="630" y="772" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="630" y="792" width="250" height="6" fill="#424a53"/>
+<text x="640" y="790" font-size="13" font-weight="600" fill="#ffffff">document_revisions</text>
+<text x="640" y="817" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="664" y="817" font-size="11.5" fill="#24292f">id</text>
+<text x="640" y="834" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="834" font-size="11.5" fill="#24292f">document_id</text>
+<text x="664" y="851" font-size="11.5" fill="#24292f">revision_no, event</text>
+<text x="664" y="868" font-size="11.5" fill="#24292f">snapshot (jsonb), hash</text>
+<rect x="630" y="900" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="630" y="900" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="630" y="920" width="250" height="6" fill="#424a53"/>
+<text x="640" y="918" font-size="13" font-weight="600" fill="#ffffff">document_files</text>
+<text x="640" y="945" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="664" y="945" font-size="11.5" fill="#24292f">id</text>
+<text x="640" y="962" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="664" y="962" font-size="11.5" fill="#24292f">document_id</text>
+<text x="664" y="979" font-size="11.5" fill="#24292f">variant ORIGINAL/COPY</text>
+<text x="640" y="996" font-size="10.5" font-weight="600" fill="#8250df">UK</text>
+<text x="664" y="996" font-size="11.5" fill="#24292f">storage_key, sha256</text>
+<rect x="630" y="1028" width="250" height="102" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="630" y="1028" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="630" y="1048" width="250" height="6" fill="#424a53"/>
+<text x="640" y="1046" font-size="13" font-weight="600" fill="#ffffff">tax_settings</text>
+<text x="640" y="1073" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="664" y="1073" font-size="11.5" fill="#24292f">id</text>
+<text x="664" y="1090" font-size="11.5" fill="#24292f">rate 7.00</text>
+<text x="664" y="1107" font-size="11.5" fill="#24292f">effective_from / to</text>
+<text x="664" y="1124" font-size="11.5" fill="#24292f">EXCLUDE overlap</text>
+<rect x="930" y="90" width="250" height="136" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="930" y="90" width="250" height="26" rx="6" fill="#1e3a5f"/>
+<rect x="930" y="110" width="250" height="6" fill="#1e3a5f"/>
+<text x="940" y="108" font-size="13" font-weight="600" fill="#ffffff">payments</text>
+<text x="940" y="135" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="964" y="135" font-size="11.5" fill="#24292f">id</text>
+<text x="940" y="152" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="964" y="152" font-size="11.5" fill="#24292f">customer_id</text>
+<text x="964" y="169" font-size="11.5" fill="#24292f">payment_date, method</text>
+<text x="964" y="186" font-size="11.5" fill="#24292f">amount_received + wht + fee</text>
+<text x="964" y="203" font-size="11.5" fill="#24292f">settled_amount (generated)</text>
+<text x="964" y="220" font-size="11.5" fill="#24292f">status ACTIVE/REVERSED</text>
+<rect x="930" y="252" width="250" height="119" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="930" y="252" width="250" height="26" rx="6" fill="#1e3a5f"/>
+<rect x="930" y="272" width="250" height="6" fill="#1e3a5f"/>
+<text x="940" y="270" font-size="13" font-weight="600" fill="#ffffff">payment_allocations</text>
+<text x="940" y="297" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="964" y="297" font-size="11.5" fill="#24292f">id</text>
+<text x="940" y="314" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="964" y="314" font-size="11.5" fill="#24292f">payment_id</text>
+<text x="940" y="331" font-size="10.5" font-weight="600" fill="#0969da">FK</text>
+<text x="964" y="331" font-size="11.5" fill="#24292f">document_id (INV)</text>
+<text x="964" y="348" font-size="11.5" fill="#24292f">amount</text>
+<text x="964" y="365" font-size="11.5" fill="#24292f">sum ≤ invoice total</text>
+<rect x="930" y="397" width="250" height="136" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="930" y="397" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="930" y="417" width="250" height="6" fill="#424a53"/>
+<text x="940" y="415" font-size="13" font-weight="600" fill="#ffffff">audit_logs</text>
+<text x="940" y="442" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="964" y="442" font-size="11.5" fill="#24292f">id (bigint)</text>
+<text x="964" y="459" font-size="11.5" fill="#24292f">occurred_at, actor_user_id</text>
+<text x="964" y="476" font-size="11.5" fill="#24292f">event_type, document_id</text>
+<text x="964" y="493" font-size="11.5" fill="#24292f">previous / new value</text>
+<text x="964" y="510" font-size="11.5" fill="#24292f">reason, related_document_id</text>
+<text x="964" y="527" font-size="11.5" fill="#24292f">row_hash (chain)</text>
+<rect x="930" y="559" width="250" height="68" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="930" y="559" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="930" y="579" width="250" height="6" fill="#424a53"/>
+<text x="940" y="577" font-size="13" font-weight="600" fill="#ffffff">idempotency_keys</text>
+<text x="940" y="604" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="964" y="604" font-size="11.5" fill="#24292f">key</text>
+<text x="964" y="621" font-size="11.5" fill="#24292f">scope, response</text>
+<rect x="930" y="653" width="250" height="85" rx="6" fill="#ffffff" stroke="#d0d7de"/>
+<rect x="930" y="653" width="250" height="26" rx="6" fill="#424a53"/>
+<rect x="930" y="673" width="250" height="6" fill="#424a53"/>
+<text x="940" y="671" font-size="13" font-weight="600" fill="#ffffff">backup_runs</text>
+<text x="940" y="698" font-size="10.5" font-weight="600" fill="#9a6700">PK</text>
+<text x="964" y="698" font-size="11.5" fill="#24292f">id</text>
+<text x="964" y="715" font-size="11.5" fill="#24292f">run_type, status</text>
+<text x="964" y="732" font-size="11.5" fill="#24292f">verification (jsonb)</text>
+</svg>
