@@ -13,6 +13,8 @@
 | ใบกำกับภาษี — **พร้อมหมายเลข Checklist** | INV-2026-0042 | [pdf/INV-2026-0042_annotated.pdf](pdf/INV-2026-0042_annotated.pdf) | [png/INV-2026-0042_annotated.png](png/INV-2026-0042_annotated.png) | 1 |
 | ใบเสร็จรับเงิน | RC-2026-0058 | [pdf/RC-2026-0058.pdf](pdf/RC-2026-0058.pdf) | [png/RC-2026-0058.png](png/RC-2026-0058.png) | 1 |
 
+| ใบเสร็จรับเงิน — **ลูกค้าหน่วยงานรัฐ หัก ณ ที่จ่าย 1%** (รุ่น Lite) | RC-2026-0059 | [pdf/RC-2026-0059_gov.pdf](pdf/RC-2026-0059_gov.pdf) | [png/RC-2026-0059_gov.png](png/RC-2026-0059_gov.png) | 1 |
+
 แหล่งของไฟล์: `*.html` + `tpl.css` (แม่แบบเดียวกันที่จะใช้ทั้ง Preview และ PDF ในระบบจริง — BR-PRT-04) · `tpl_annot.css` ใช้เฉพาะไฟล์ `_annotated`
 
 ## แผนผังตำแหน่งข้อมูล (ทุกเอกสาร)
