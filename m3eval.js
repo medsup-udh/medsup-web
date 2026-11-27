@@ -523,6 +523,7 @@
     });
   }
 
+  X.m3eval = { unitPicker: unitPicker };   // ใช้ร่วมกับหน้าคำขอผู้ขาย (m3vendor.js)
   replacePage('eval', pageEval); replacePage('evalform', pageEvalForm); replacePage('round', pageRoundEdit); replacePage('evalprint', pageEvalPrint);
   var at = X.pages.map(function (p) { return p.path; }).indexOf('documents');
   X.pages.splice(at < 0 ? X.pages.length : at, 0, { path: 'evalresults', label: 'ผลประเมิน', nav: false, roles: ['OFFICER'], render: pageResults });
