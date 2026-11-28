@@ -313,7 +313,7 @@
   function allowed(p) { return !p.roles || p.roles.some(hasRole); }
   /* ส่วนขยาย (web/m56.js): ลงทะเบียนหน้า ป้าย และส่วนเสริมหน้าเอกสาร โดยไม่ต้องแก้ไฟล์นี้อีก */
   var EXT = { el: el, add: add, clear: clear, callApi: callApi, guard: guard, toast: toast, reportFail: reportFail, errText: errText, hasRole: hasRole,
-              me: function () { return me; }, fmtDate: fmtDate, pageTitle: pageTitle, loading: loading, badge: badge, statusLabel: statusLabel, actionLabel: actionLabel,
+              me: function () { return me; }, fmtDate: fmtDate, pageTitle: pageTitle, formDownload: formDownload, loading: loading, badge: badge, statusLabel: statusLabel, actionLabel: actionLabel,
               STATUS_LABEL: STATUS_LABEL, ACTION_LABEL: ACTION_LABEL, FIELD_MSG: FIELD_MSG, FIELD_LABEL: FIELD_LABEL, WRITE_ACTIONS: WRITE_ACTIONS,
               pages: PAGES, detail: {}, label: function (k) { return k; } };
   EXT.app = { thaiDate: thaiDate, thaiDigits: thaiDigits, n2: n2, newRequestId: newRequestId, route: function () { return route(); }, askComment: askComment,
@@ -343,6 +343,21 @@
 
   function pageTitle(view, title, sub) {
     var c = el('div', null, 'card'); add(c, el('h1', title)); if (sub) add(c, el('div', sub, 'muted')); view.appendChild(c); return c;
+  }
+  /* แบบฟอร์ม Word เปล่า (ชั่วคราว) สำหรับหน่วยงานที่ยังไม่ได้ใช้ระบบ — ไฟล์คงที่ใน web/forms ไม่เรียกเซิร์ฟเวอร์ ไม่มีข้อมูลในระบบ
+     พัสดุเป็นผู้บันทึกเข้าระบบ · กลไกเดียวใช้ทุกเมนู (m56.js เรียกผ่าน X.formDownload) */
+  var WORD_FORMS = {
+    M1: ['forms/medsup-form-problem.docx', 'แบบแจ้งปัญหาวัสดุ.docx'],
+    M4: ['forms/medsup-form-restrict.docx', 'บันทึกขอเบิกวัสดุควบคุม.docx'],
+    M5: ['forms/medsup-form-oop.docx', 'บันทึกขอซื้อนอกแผน.docx'],
+    M6: ['forms/medsup-form-plan.docx', 'แบบยืนยันขอซื้อในแผน.docx']
+  };
+  function formDownload(card, key) {
+    var f = WORD_FORMS[key]; if (!f || !card) return null;
+    var row = el('div', null, 'actions form-dl');
+    add(row, el('a', 'ดาวน์โหลดแบบฟอร์ม (Word)', 'btn secondary small', { href: f[0], download: f[1] }),
+        el('span', 'แบบฟอร์มชั่วคราว สำหรับหน่วยงานที่ยังไม่ได้ใช้ระบบ ข้อมูลจะถูกบันทึกเข้าระบบโดยพัสดุ', 'muted'));
+    card.appendChild(row); return row;
   }
   function loading(view, text) { var n = el('div', text || 'กำลังโหลด...', 'muted card', { role: 'status' }); view.appendChild(n); return n; }
 
@@ -802,7 +817,8 @@
 
   function pageReportForm(view, args, alive) {
     var docId = args[0] ? decodeURIComponent(args[0]) : null;
-    pageTitle(view, docId ? 'แก้ไขรายงานปัญหา' : 'แจ้งปัญหาวัสดุการแพทย์', 'ช่องที่มี * ต้องกรอกก่อนส่ง');
+    var top = pageTitle(view, docId ? 'แก้ไขรายงานปัญหา' : 'แจ้งปัญหาวัสดุการแพทย์', 'ช่องที่มี * ต้องกรอกก่อนส่ง');
+    if (!docId) formDownload(top, 'M1');
     var box = loading(view);
     var loads = [loadMaster('departments'), loadMaster('items'), loadMaster('vendors')];
     if (docId) loads.push(callApi('documents.get', { id: docId }));
@@ -1206,6 +1222,7 @@
     var docId = args[0] ? decodeURIComponent(args[0]) : null;
     var top = pageTitle(view, docId ? 'แก้ไขบันทึกขอเบิก' : 'ขอเบิกรายการที่ถูกจำกัด', 'ระบบเรียงเป็นบันทึกข้อความให้ · ช่องที่มี * ต้องกรอกก่อนส่ง');
     add(top, add(el('div', null, 'actions'), el('a', 'ดูรายการที่ถูกจำกัด', 'btn secondary', { href: '#/restricted' })));
+    if (!docId) formDownload(top, 'M4');
     var box = loading(view);
     var loads = [callApi('m4.form'), loadMaster('departments')];
     if (docId) loads.push(callApi('documents.get', { id: docId }));

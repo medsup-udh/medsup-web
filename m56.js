@@ -206,7 +206,8 @@
   function pagePlanForm(view, parts, alive) {
     guardLeave(view, alive);
     var docId = parts[0] ? decodeURIComponent(parts[0]) : null;
-    X.pageTitle(view, docId ? 'แก้ไขแบบยืนยันขอซื้อในแผน' : 'ขอซื้อในแผน', 'ยืนยันความต้องการใช้วัสดุที่อยู่ในแผนจัดซื้อปีนี้ · กรอกคงคลังและยอดใช้ต่อเดือน ระบบคำนวณจำนวนเงินและระยะเวลาที่พอใช้ให้');
+    var top56 = X.pageTitle(view, docId ? 'แก้ไขแบบยืนยันขอซื้อในแผน' : 'ขอซื้อในแผน', 'ยืนยันความต้องการใช้วัสดุที่อยู่ในแผนจัดซื้อปีนี้ · กรอกคงคลังและยอดใช้ต่อเดือน ระบบคำนวณจำนวนเงินและระยะเวลาที่พอใช้ให้');
+    if (!docId && X.formDownload) X.formDownload(top56, 'M6');
     var box = X.loading(view);
     Promise.all([loadPlan(true), docId ? callApi('documents.get', { id: docId }) : Promise.resolve(null)]).then(function (res) {
       if (!alive()) return; box.remove();
@@ -371,7 +372,8 @@
   function pageOopForm(view, parts, alive) {
     guardLeave(view, alive);
     var docId = parts[0] ? decodeURIComponent(parts[0]) : null;
-    X.pageTitle(view, docId ? 'แก้ไขบันทึกขอซื้อนอกแผน' : 'ขอซื้อนอกแผน', 'แทนบันทึกข้อความเรียนผู้อำนวยการ · ระบุเหตุผลความจำเป็น การเบิกคืน และยอดใช้ต่อเดือน');
+    var top56 = X.pageTitle(view, docId ? 'แก้ไขบันทึกขอซื้อนอกแผน' : 'ขอซื้อนอกแผน', 'แทนบันทึกข้อความเรียนผู้อำนวยการ · ระบุเหตุผลความจำเป็น การเบิกคืน และยอดใช้ต่อเดือน');
+    if (!docId && X.formDownload) X.formDownload(top56, 'M5');
     var box = X.loading(view);
     Promise.all([callApi('master.items', {}), loadPlan(true).catch(function () { return { rows: [] }; }), docId ? callApi('documents.get', { id: docId }) : Promise.resolve(null)]).then(function (res) {
       if (!alive()) return; box.remove();
